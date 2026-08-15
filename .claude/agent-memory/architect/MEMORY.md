@@ -1,2 +1,3 @@
 - [Phase 0 spike plan](project_phase0_spike_plan.md) — where spike code lives, SPIKE-1 denominator methodology, docker-compose caveat, test strategy decision
 - [ODS/data.education.gouv.fr data source gaps](reference_ods_data_sources.md) — IVAC dataset id undocumented, ODS pagination caps, network reachability check
+- [Phase 1 data layer plan](project_phase1_data_layer_plan.md) — DATA-1..5 plan; etablissement_mere doesn't solve UAI dedup, no reliable natural dedup key, sous_seuil_diffusion source-field gap, stack picks (psycopg3/httpx/apscheduler, no ORM)

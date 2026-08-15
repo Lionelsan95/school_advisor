@@ -53,10 +53,26 @@ API Annuaire éducation + API IVAC/IVAL (sources externes, hors contrôle)
 
 ## Modèle de données (esquisse)
 
-*Esquisse antérieure au spike. Deux réserves établies le 15 août 2026 (voir
-`05_Resultats_Spike_Technique.md`) : `uai` ne peut pas être posé en clé primaire
-de `Etablissement` sans règle de déduplication (74 doublons multi-sites), et
-`sous_seuil_diffusion` ne doit pas être calculé à partir d'un effectif.*
+> **Esquisse antérieure au spike — dépassée par l'implémentation de la Phase 1
+> (15 août 2026). Le schéma réel fait foi :
+> `back/alembic/versions/0001_initial_schema.py`.** Trois écarts :
+>
+> 1. **Les sites sont une table à part.** `etablissement` est bien clé primaire
+>    `uai`, et une table `site` (1..n par UAI) porte nom, adresse et
+>    coordonnées. C'est la résolution des 74 doublons multi-sites : aucun site
+>    n'est perdu.
+> 2. **Le champ `sous_seuil_diffusion` n'existe pas du tout.** Il ne s'agit pas
+>    seulement de ne pas le calculer : aucune des trois sources ne publie de
+>    motif d'absence. Une valeur absente est un `NULL`, sans motif attribué.
+> 3. **Pas de clé étrangère entre `indicateur_resultat` et `etablissement`.**
+>    1,2 % des lignes d'indicateurs référencent un UAI absent de l'annuaire
+>    (lacune Var/Vaucluse). Une contrainte d'intégrité rejetterait des données
+>    officielles à cause du défaut d'un *autre* jeu de données. Les lignes non
+>    rattachées sont journalisées, jamais écartées.
+>
+> Les noms de colonnes réels sont en anglais (convention `CLAUDE.md`) ; les
+> noms français ci-dessous et dans `08_API_Contract.md` restent ceux du format
+> d'échange JSON.
 
 ```
 Etablissement

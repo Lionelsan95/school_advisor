@@ -65,17 +65,34 @@ independent of any HTTP API or LLM layer.
 **Entry criteria:** Phase 0 exit criteria met.
 
 **Exit criteria:**
-- [ ] Ingestion job runs end-to-end locally via `docker compose up`, populating
-      the database from both live source APIs.
-- [ ] Unit tests cover the join logic and the handling of missing indicator
+- [x] Ingestion job runs end-to-end locally, populating the database from both
+      live source APIs. — 67 816 establishments, 67 896 sites and 87 612
+      indicator rows in ~15s. Triggered with
+      `python -m src.infrastructure.ingestion`; the in-process scheduler runs
+      the same code path daily when `INGESTION_ENABLED=true` (off by default,
+      so a checkout never calls the public APIs unasked).
+- [x] Unit tests cover the join logic and the handling of missing indicator
       values in isolation, without a real database. Note: the non-diffusion
       threshold (<20 candidates GT, <10 PRO) must **not** be implemented as a
       derivation rule — the spike showed it does not predict which values are
       missing. Test that the source's own indication is preserved, not that a
-      threshold is recomputed.
-- [ ] Ingestion failure (simulated: unreachable source, unexpected schema)
-      produces a visible alert/log, not a silent partial import.
-- [ ] Re-running ingestion does not overwrite prior years' indicator rows.
+      threshold is recomputed. — 81 unit tests, no database and no network.
+- [x] Ingestion failure (simulated: unreachable source, unexpected schema)
+      produces a visible alert/log, not a silent partial import. — a missing
+      source field raises `SourceSchemaMismatchError` *before* any row is
+      parsed; collapsed record counts and a match rate below 95% raise
+      `SuspiciousIngestionError` before anything is written. Every failure
+      logs CRITICAL and is recorded in the `ingestion_run` table.
+- [x] Re-running ingestion does not overwrite prior years' indicator rows. —
+      verified against the live data (a second run appends 0 rows) and by
+      integration tests that re-offer an existing year with a changed value
+      and assert the stored value is unchanged.
+
+**Phase 1 closed on 2026-08-15.** 89 tests pass (81 unit + 8 integration);
+ruff and mypy --strict are clean. Carried forward: a production `Dockerfile`
+(OPS-1) and `front/Dockerfile.dev` (Phase 4) still do not exist, so
+`docker compose up --build` cannot start all three services yet — use
+`docker compose up -d db backend`.
 
 ---
 

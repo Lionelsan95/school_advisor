@@ -72,11 +72,23 @@ Full context lives in `docs/`:
 cp .env.example .env
 docker compose up --build
 
-# Backend (run inside the backend container, or locally with the venv active)
-pytest                  # run tests
-ruff check .             # lint
-ruff format .             # format
+# Backend — run from back/ (that is where pyproject.toml, tests/ and the venv
+# live; from the repo root these pick up no config and sweep in docs/ etc.)
+cd back
+pytest tests/unit         # fast, no database and no network
+pytest                    # adds tests/integration — needs DATABASE_URL set,
+                          # otherwise those tests skip
+ruff check src tests      # lint
+ruff format src tests     # format
 mypy src                  # type check
+
+# Trigger an ingestion run by hand (the scheduler only runs it when
+# INGESTION_ENABLED=true). Needs DATABASE_URL.
+python -m src.infrastructure.ingestion
+python -m src.infrastructure.ingestion --rollback   # undo the last load
+
+# Apply migrations (also needs DATABASE_URL; it has no fallback by design)
+alembic upgrade head
 
 # Frontend
 npm run dev              # Vite dev server
@@ -146,6 +158,28 @@ consequence.)*
 - **IVAC covers only 2022–2025** (4 years) versus 14 for IVAL. Consequence:
   collège fact sheets have a much shorter history than lycée ones, by source
   design, and the UI must say so rather than look broken.
+
+*(Added during Phase 1, 2026-08-15 — both found by integration tests, not by
+reading the code.)*
+
+- **A staging table built with `LIKE ... INCLUDING ALL` does not keep its
+  index names, and `ALTER TABLE ... RENAME` does not rename indexes.** Swapping
+  a staging table into place left the live table carrying
+  `establishment_staging_type_idx2` instead of `ix_establishment_type`, with
+  the numeric suffix incrementing on every run. Consequence: any later
+  migration referring to an index by its declared name would fail on a
+  database that had ingested even once. `replace_all` therefore snapshots,
+  `TRUNCATE`s and refills the real tables rather than swapping — TRUNCATE is
+  transactional in Postgres, so the cutover is still atomic.
+- **`CREATE TEMPORARY TABLE ... ON COMMIT DROP` is not dropped between calls
+  inside one outer transaction.** The whole ingestion run is wrapped in a
+  single transaction, so the commit that would drop the temp table has not
+  happened yet and a second `append()` fails with `DuplicateTable`.
+  Consequence: drop it explicitly before creating it.
+- **The whole ingestion run is one transaction** (`job.py`). Consequence: if
+  indicators fail after establishments were replaced, the establishment
+  snapshot rolls back too — the database and the `ingestion_run` audit row can
+  never disagree about whether a run succeeded.
 
 ## Workflow
 

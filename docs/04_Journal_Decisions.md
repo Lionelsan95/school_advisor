@@ -32,6 +32,59 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
 
 ## Décisions du projet
 
+### 2026-08-15 — Identifiants de code en anglais, format JSON en français
+- **Contexte :** `CLAUDE.md` impose des identifiants en anglais, mais tous les
+  documents (glossaire, contrat d'API) emploient des noms français
+  (`valeur_ajoutee`, `sous_seuil_diffusion`).
+- **Décision :** code et colonnes de base en anglais ; le format d'échange JSON
+  conserve les noms français de `08_API_Contract.md`. La conversion se fait au
+  seul point de sérialisation.
+- **Alternatives écartées :** noms français partout (contraire à une consigne
+  explicite) ; anglais y compris sur le fil (romprait le contrat documenté).
+- **Réversibilité :** coûteuse une fois l'API publiée ; facile aujourd'hui.
+
+### 2026-08-15 — Multi-sites modélisés par une table `site` dédiée
+- **Contexte :** 74 UAI désignent des établissements multi-sites (68 à deux
+  sites, 6 à trois). L'UAI ne peut donc pas être clé primaire d'une table
+  unique sans perdre un site.
+- **Décision :** `etablissement` reste clé primaire `uai` ; une table `site`
+  (1..n) porte nom, adresse et coordonnées de chaque implantation. Le site
+  canonique est choisi de façon déterministe (`sequence` la plus basse) après
+  tri sur des champs stables, pour qu'une réingestion identique donne le même
+  résultat.
+- **Alternatives écartées :** clé primaire de substitution avec `uai` non
+  unique — rendrait `/etablissements/{uai}` ambigu ; « dernière ligne gagne » —
+  ferait disparaître un site sans trace.
+- **Réversibilité :** coûteuse (schéma).
+
+### 2026-08-15 — Aucun champ `sous_seuil_diffusion` dans le modèle
+- **Contexte :** vérification des catalogues de champs des trois jeux
+  d'indicateurs : **aucune source ne publie de motif d'absence**. Seule
+  l'absence de valeur est observable.
+- **Décision :** ne pas créer le champ. Une valeur absente est un `NULL` sans
+  motif. L'exigence d'API-4 (distinguer « non diffusée » de « non disponible »)
+  n'est pas représentable à partir des données et reste bloquée sur la
+  confirmation de la méthodologie DEPP.
+- **Alternatives écartées :** conserver un booléen toujours nul pour respecter
+  l'esquisse de `02_Architecture_Decisions.md` — un champ qui ne porte aucune
+  information invite à lui faire dire quelque chose.
+- **Réversibilité :** facile (ajout de colonne si une source le publie un jour).
+
+### 2026-08-15 — Rechargement complet plutôt qu'upsert, et pas de clé étrangère
+- **Contexte :** l'annuaire est un extrait complet sans marqueur de
+  modification ; 1,2 % des lignes d'indicateurs référencent un UAI absent de
+  l'annuaire.
+- **Décision :** `replace_all` prend un instantané, vide les tables et les
+  recharge par `COPY`, le tout dans une transaction (`TRUNCATE` est
+  transactionnel sous Postgres). Aucune clé étrangère entre
+  `indicateur_resultat` et `etablissement` : elle rejetterait des données
+  officielles à cause de la lacune d'un autre jeu. Les non-rattachés sont
+  journalisés.
+- **Alternatives écartées :** upsert par UAI — ne détecterait pas les
+  suppressions ; bascule par renommage de tables de staging — renomme
+  silencieusement les index (voir `CLAUDE.md`, gotchas).
+- **Réversibilité :** facile.
+
 ### 2026-08-15 — Spike de Phase 0 exécuté à l'échelle nationale, pas sur un département
 - **Contexte :** le ticket SPIKE-1 suggérait « un département complet ». Un taux
   de correspondance limite mesuré sur un seul département n'aurait pas permis de

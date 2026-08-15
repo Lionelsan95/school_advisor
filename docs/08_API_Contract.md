@@ -5,6 +5,14 @@ real shape diverges from what's described here — keep it in sync rather than
 letting it go stale (see the "outdated knowledge" warning in the project's
 documentation practices).*
 
+> **Implementation status (end of Phase 1, 2026-08-15): only `GET /health`
+> exists.** Everything else below is the Phase 2+ target shape, not a live
+> endpoint. The data layer behind them is in place and populated.
+>
+> Note for Phase 2: the database columns are in English (`value_added_success`,
+> `candidates_present`, …) while this contract's JSON stays French. The mapping
+> belongs at the serialization boundary — see `docs/04_Journal_Decisions.md`.
+
 ---
 
 ## Conventions

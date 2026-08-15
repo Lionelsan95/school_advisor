@@ -72,8 +72,17 @@ directory API (`fr-en-annuaire-education`) into `Etablissement` rows.
 **Acceptance criteria:**
 - Adapter isolated behind a port defined in `domain/` or `application/` (so it
   can be mocked in tests).
-- Handles pagination correctly (source API limits records per call).
-- Upserts by UAI without duplicating rows on re-run.
+- Retrieves the dataset in full without truncation. *(Implemented via
+  `/exports/json` rather than paginating `/records`: the spike established that
+  `/records` caps at 100 rows per call and has an offset ceiling, so it cannot
+  page a whole dataset at all. Pagination is therefore not the mechanism —
+  see `05_Resultats_Spike_Technique.md`, section 3, point 4.)*
+- Re-running produces no duplicate rows. *(Implemented as a snapshot +
+  `TRUNCATE` + `COPY` full reload inside one transaction, not an upsert. The
+  directory is a full published extract with no per-row change marker, so a
+  full replace is both simpler and the only way to notice deletions. The
+  previous state is retained for rollback.)*
+- One establishment row per UAI, with every published site preserved.
 
 ### DATA-4: IVAC/IVAL ingestion adapter
 **Goal:** adapter pulling from the IVAC and IVAL (GT + PRO) datasets into
