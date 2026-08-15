@@ -153,11 +153,25 @@ absence accurately — without asserting a cause the source does not give.
 threshold must be confirmed against the official methodology documentation
 before the message text is frozen. See `05_Resultats_Spike_Technique.md`,
 section 3, problem 2.
+
+> **Constraint established in Phase 1 — read before writing the serializer.**
+> The field catalogues of all three indicator datasets were checked: **no
+> source publishes any reason for a missing value.** Only the absence itself
+> is observable. Consequently the database has no `sous_seuil_diffusion`
+> column and none can be added from source data.
+>
+> The example payloads in `08_API_Contract.md` still show
+> `sous_seuil_diffusion` and a populated `non_diffusion_reason`. **Those fields
+> have nothing behind them.** Do not satisfy them by computing a reason from
+> `candidates_present` — that is precisely the violation the Phase 1 design
+> exists to prevent, and the spike measured 457 rows it would mislabel.
+> Either drop the fields from the contract or leave the reason unset.
+
 **Acceptance criteria:**
-- At least two distinct cases are distinguished in the response: a value the
-  source reports as *not published*, and a value simply *not available* with
-  no reason given. A single catch-all message is not acceptable — the spike
-  showed the threshold does not explain every absence.
+- The response distinguishes *a figure that is present* from *a figure that is
+  absent*, and says nothing about why an absent one is absent.
+- No response field asserts a cause, and no value is derived from a candidate
+  count.
 - The response never states the effectif threshold as the cause unless the
   source actually attributes the absence to it.
 - Message text is static versioned content (per API-3) and has passed the

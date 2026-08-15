@@ -101,9 +101,10 @@ class TestNoReasonIsEverInferredForAnAbsentValue:
 
     docs/05_Resultats_Spike_Technique.md, section 3.2: the spike found IVAL
     GT rows *below* the documented 20-candidate threshold that still carry a
-    value-added figure (75 of them, all 2016), and rows *above* it (186,
-    113 in Mayotte) with none. Nothing in the adapter may derive absence —
-    or presence — from `candidates_present`.
+    value-added figure (75 of them, all 2016), and 457 rows *above* it with
+    none — of which 186 have 50 candidates or more, and 113 of those are in
+    Mayotte, where value-added is not computed at all. Nothing in the adapter
+    may derive absence — or presence — from `candidates_present`.
     """
 
     def test_a_low_candidate_count_with_a_present_value_keeps_the_value(
