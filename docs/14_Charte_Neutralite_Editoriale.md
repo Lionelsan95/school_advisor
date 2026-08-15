@@ -38,7 +38,7 @@ Le produit s’adresse à l’utilisateur avec « vous » et privilégie des phr
 | Valeur ajoutée négative | Résultat observé inférieur de 3 points au résultat statistiquement attendu | L’établissement sous-performe |
 | Égalité | Les deux valeurs affichées sont identiques pour cette année | Les établissements sont équivalents |
 | Historique | Valeurs disponibles de 2022 à 2025 | Tendance positive sur quatre ans |
-| Donnée absente | Valeur non diffusée en raison du seuil d’effectif | Résultat insuffisant / N.A. |
+| Donnée absente | Valeur non diffusée en raison du seuil d’effectif ⚠️ *(à réviser, voir § 6)* | Résultat insuffisant / N.A. |
 | Donnée ancienne | Dernières données disponibles : 2023 | Résultats obsolètes |
 | Comparaison | Placer les données côte à côte | Trouver le meilleur établissement |
 | Requête subjective | Ce service ne classe pas les établissements | Voici nos meilleurs résultats |
@@ -69,6 +69,20 @@ Explication immédiatement disponible :
 Le signe `+` ou `−` reste affiché car il fait partie de la donnée, mais il ne reçoit aucune couleur de performance.
 
 ## 6. Données non diffusées
+
+> ⚠️ **Révision requise — constat du spike du 15/08/2026.**
+> La formulation de référence ci-dessous attribue toute absence de valeur au
+> seuil d'effectif. Le spike a mesuré 457 lignes IVAL GT **au-dessus** du seuil
+> sans valeur ajoutée (dont 113 à Mayotte, où elle n'est pas calculée), et 75
+> lignes sous le seuil qui en portent une. Cette formulation ne peut donc pas
+> être implémentée telle quelle : elle prêterait à l'absence une cause que la
+> source ne donne pas, ce que la règle 14.14 §3 interdit précisément.
+> Il faut distinguer au minimum « valeur non diffusée » (motif publié) et
+> « valeur non disponible » (motif non précisé).
+> Remplacement à valider par un humain — ticket API-4, lui-même conditionné à
+> la confirmation de la sémantique DEPP. Voir
+> `05_Resultats_Spike_Technique.md`, section 3, problème n°2.
+> *Le texte existant est conservé intact ci-dessous en attendant cette revue.*
 
 Texte de référence :
 

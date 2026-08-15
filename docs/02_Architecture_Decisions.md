@@ -53,9 +53,14 @@ API Annuaire éducation + API IVAC/IVAL (sources externes, hors contrôle)
 
 ## Modèle de données (esquisse)
 
+*Esquisse antérieure au spike. Deux réserves établies le 15 août 2026 (voir
+`05_Resultats_Spike_Technique.md`) : `uai` ne peut pas être posé en clé primaire
+de `Etablissement` sans règle de déduplication (74 doublons multi-sites), et
+`sous_seuil_diffusion` ne doit pas être calculé à partir d'un effectif.*
+
 ```
 Etablissement
-├── uai (id officiel)
+├── uai (id officiel — PAS unique en l'état, cf. DATA-2)
 ├── nom, type, statut_public_prive
 ├── adresse, code_postal, commune, latitude, longitude
 ├── filieres[], sections[]
@@ -67,8 +72,8 @@ IndicateurResultat
 ├── annee
 ├── type_indicateur (IVAC | IVAL_GT | IVAL_PRO)
 ├── taux_reussite, taux_acces, taux_mention
-├── valeur_ajoutee (nullable si sous seuil)
-├── sous_seuil_diffusion (bool)
+├── valeur_ajoutee (nullable — absence reprise de la source, jamais estimée)
+├── sous_seuil_diffusion (bool — repris de la source, JAMAIS calculé)
 └── date_publication_source
 
 SourceReference

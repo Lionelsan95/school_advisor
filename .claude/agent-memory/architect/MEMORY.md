@@ -1,0 +1,2 @@
+- [Phase 0 spike plan](project_phase0_spike_plan.md) — where spike code lives, SPIKE-1 denominator methodology, docker-compose caveat, test strategy decision
+- [ODS/data.education.gouv.fr data source gaps](reference_ods_data_sources.md) — IVAC dataset id undocumented, ODS pagination caps, network reachability check

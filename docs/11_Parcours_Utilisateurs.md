@@ -83,6 +83,14 @@ La page propose la méthodologie et la source, sans suggérer de conclusion.
 
 ## 7. Valeur sous le seuil de diffusion
 
+> ⚠️ **Révision requise — constat du spike du 15/08/2026.**
+> Ce scénario suppose que toute valeur absente l'est à cause du seuil
+> d'effectif. Les données montrent que ce n'est pas le cas (voir
+> `14_Charte_Neutralite_Editoriale.md`, § 6, et
+> `05_Resultats_Spike_Technique.md`, section 3). Un second scénario est à
+> écrire pour l'absence sans motif publié. Validation humaine requise —
+> ticket API-4. *Texte existant conservé intact ci-dessous.*
+
 La carte d’indicateur affiche « Valeur non diffusée » au lieu d’un nombre.
 
 Le détail explique :

@@ -7,11 +7,11 @@ Ce dossier transforme la vision produit en règles directement utilisables pour 
 
 ## Ordre de lecture
 
-1. `01_Specification_UX_MVP.md` — objectifs, périmètre et décisions structurantes
-2. `02_Parcours_Utilisateurs.md` — parcours nominal et scénarios alternatifs
-3. `03_Architecture_Information.md` — navigation, pages et hiérarchie du contenu
-4. `04_Inventaire_Ecrans_Etats.md` — écrans, états et critères d’acceptation
-5. `05_Charte_Neutralite_Editoriale.md` — vocabulaire, règles visuelles et garde-fous
+1. `10_Specification_UX_MVP.md` — objectifs, périmètre et décisions structurantes
+2. `11_Parcours_Utilisateurs.md` — parcours nominal et scénarios alternatifs
+3. `12_Architecture_Information.md` — navigation, pages et hiérarchie du contenu
+4. `13_Inventaire_Ecrans_Etats.md` — écrans, états et critères d’acceptation
+5. `14_Charte_Neutralite_Editoriale.md` — vocabulaire, règles visuelles et garde-fous
 
 ## Autorité documentaire
 
@@ -35,12 +35,19 @@ En cas de contradiction :
 - Conception mobile prioritaire, avec conformité WCAG 2.2 niveau AA visée.
 - Nom de travail : **Établissements en clair**. Il ne constitue pas encore un choix de marque définitif.
 
-## Dépendances non bloquantes
+## Dépendances levées par le spike technique (15 août 2026)
 
-Le spike technique doit encore confirmer :
+Les trois inconnues sont désormais mesurées — voir `05_Resultats_Spike_Technique.md` :
 
-- la fiabilité de la jointure par UAI ;
-- la continuité méthodologique des historiques IVAL ;
-- la couverture réelle obtenue après ingestion.
+- **jointure par UAI** : fiable à 98,80 % (seuil visé 90 %) → **GO** ;
+- **continuité méthodologique IVAL** : valeurs identiques entre ancienne et
+  nouvelle version ; seule rupture réelle en **2021** (réforme du baccalauréat),
+  et uniquement sur les sous-séries ;
+- **couverture réelle** : 75 % des collèges et 65 % des lycées disposent
+  d'indicateurs. L'état « aucun indicateur disponible » est donc un cas
+  **courant**, à traiter comme tel dans les maquettes, et non un cas limite.
 
-Ces inconnues influencent les données affichables, pas l’architecture générale de l’expérience.
+Point de vigilance éditorial ouvert : le motif affiché pour une valeur absente
+ne peut pas être systématiquement le seuil d'effectif (cf.
+`05_Resultats_Spike_Technique.md`, section 3). La formulation de référence de la
+charte doit être revue par un humain avant d'être implémentée.

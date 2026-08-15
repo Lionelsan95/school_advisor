@@ -105,12 +105,47 @@ npm run lint               # eslint
 
 ## Non-obvious gotchas
 
-*(Empty for now — this project hasn't been implemented yet. As the codebase
-grows, record here anything a future session would otherwise have to
-rediscover the hard way: subtle remapping logic, ordering dependencies,
-shared state across modules, anything "load-bearing" that isn't obvious from
-reading the code once. Follow the style of the entries in this file's
-inspiration source: state the fact, then state the consequence.)*
+*(Established by the Phase 0 spike, 2026-08-15. Full evidence in
+`docs/05_Resultats_Spike_Technique.md`. Keep adding here anything a future
+session would otherwise rediscover the hard way: state the fact, then the
+consequence.)*
+
+- **UAI is not unique in the directory dataset** — 74 UAIs appear twice
+  (multi-site establishments sharing one identifier). Consequence: `uai`
+  cannot be made a primary key on `Etablissement` until DATA-2 settles a
+  deduplication rule. On the indicator datasets, `(uai, year)` *is* strictly
+  unique across all 87k rows, so the append-only design holds there.
+- **A missing `valeur_ajoutee` does not imply the non-diffusion threshold.**
+  457 IVAL GT rows above the threshold have no value (113 of them in Mayotte,
+  where it isn't computed), and 75 below-threshold rows do have one (all in
+  2016). Consequence: never derive `sous_seuil_diffusion` from a candidate
+  count, and never label every missing value as "below threshold" — it is
+  factually wrong and breaks the neutrality charter's rule against assigning
+  a cause absent from the source.
+- **`/records` cannot page a whole dataset** — 100 rows per page with an
+  offset ceiling. Consequence: `/exports/json` is the only viable endpoint for
+  a full pull. It has no offset limit and returns all 68k directory rows in
+  ~4s.
+- **The catalog metadata endpoint returns gzip even when the request sends
+  `Accept-Encoding: identity`**, while `/records` and `/exports` honour it.
+  Consequence: sniff the gzip magic bytes rather than trusting the headers.
+- **`annee` (IVAL `_v2`) and `session` (IVAC) are ISO date strings**
+  (`"2025-01-01T00:00:00+00:00"`), not integers — but the *legacy* IVAL
+  datasets use plain integers, and type several numeric columns as text
+  (`va_reu_total` is `"-5"`, not `-5.0`). Consequence: normalise on ingest.
+- **The directory has a real regional coverage gap** — Var (83) holds 120
+  records, fewer than Lozère, France's least populated département. It causes
+  114 of the 119 unmatched indicator UAIs. Consequence: unmatched
+  establishments are a source-completeness signal, not a join bug; a drop in
+  the 98.8% match rate must alert (DATA-5).
+- **The IVAL per-stream series breaks in 2021** (baccalauréat reform: L/ES/S
+  replaced by a single general stream). Total-level indicators stay continuous
+  2012–2025. Consequence: F5 history uses total-level indicators only, and
+  `methodology_breaks` carries 2021 — not the 2019 placeholder in the API
+  contract example.
+- **IVAC covers only 2022–2025** (4 years) versus 14 for IVAL. Consequence:
+  collège fact sheets have a much shorter history than lycée ones, by source
+  design, and the UI must say so rather than look broken.
 
 ## Workflow
 

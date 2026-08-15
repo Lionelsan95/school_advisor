@@ -124,6 +124,19 @@ commune then name. Never by result indicators.
 }
 ```
 
+> ⚠️ **`non_diffusion_reason` — wording above is PROVISIONAL and must not be
+> implemented as-is.** The example attributes the absence to the effectif
+> threshold, which SPIKE-3 showed to be wrong in a notable share of cases (457
+> IVAL GT rows above the threshold have no value, 113 of them in Mayotte where
+> it is not computed at all). The response must distinguish at least a value
+> the source reports as *not published* from one that is simply *not available*
+> with no stated reason.
+>
+> The replacement wording is F6 static editorial content and requires the human
+> review step defined in `CLAUDE.md` ("Explanatory content change") before it is
+> written here or in code. Tracked as ticket API-4, blocked on confirming the
+> DEPP threshold semantics. See `05_Resultats_Spike_Technique.md`, section 3.
+
 ---
 
 ## `GET /establishments/{uai}/history`
@@ -140,15 +153,24 @@ methodology break annotation identified in the technical spike.
   ],
   "methodology_breaks": [
     {
-      "year": 2019,
-      "note": "Changement de méthode de calcul — voir docs/05_Resultats_Spike_Technique.md"
+      "year": 2021,
+      "note": "Réforme du baccalauréat — voir docs/05_Resultats_Spike_Technique.md"
     }
   ]
 }
 ```
 
-*(This endpoint's exact shape depends on SPIKE-2 findings — update once the
-technical spike is done.)*
+*Updated after SPIKE-2 (2026-08-15).* The break year is **2021** (baccalauréat
+reform), not 2019. It affects the per-stream sub-indicators only: the
+total-level values this endpoint returns (`taux_reu_total`, `va_reu_total`,
+`taux_acces_2nde`) are continuous over 2012–2025 and were verified identical
+between the legacy and `_v2` datasets on every overlapping year.
+
+Note the asymmetry in history depth, which is a property of the sources: IVAL
+(lycées) covers 2012–2025, IVAC (collèges) only 2022–2025.
+
+The exact `note` wording is static editorial content (F3/F6/F7) and requires
+human review before commit — see `CLAUDE.md`, "Explanatory content change".
 
 ---
 

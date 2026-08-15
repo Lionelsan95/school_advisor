@@ -56,7 +56,14 @@ as framework-agnostic domain objects in `back/src/domain/`.
 PostGIS.
 **Acceptance criteria:**
 - `IndicateurResultat` table is append-only by design (composite key includes
-  `annee`; no update path that overwrites a prior year).
+  `annee`; no update path that overwrites a prior year). The spike verified
+  `(uai, annee, type_indicateur)` is strictly unique across all 87 612 rows.
+- **A deduplication rule for the directory is decided and documented before
+  `uai` is made a primary key on `Etablissement`.** The spike found 74 UAIs
+  appearing twice — multi-site establishments sharing one identifier (see
+  `05_Resultats_Spike_Technique.md`, section 3, problem 1). Examine the
+  `multi_uai` and `etablissement_mere` source fields. A silent "last row wins"
+  is not acceptable: it would drop a site without trace.
 - Migration runs cleanly against a fresh database via `docker compose up`.
 
 ### DATA-3: Education directory ingestion adapter
@@ -72,10 +79,18 @@ directory API (`fr-en-annuaire-education`) into `Etablissement` rows.
 **Goal:** adapter pulling from the IVAC and IVAL (GT + PRO) datasets into
 `IndicateurResultat` rows, applying the join strategy validated in SPIKE-1.
 **Acceptance criteria:**
-- Rows below the non-diffusion threshold are stored with
-  `sous_seuil_diffusion = true` and `valeur_ajoutee = null` — never estimated
-  or backfilled.
+- A missing `valeur_ajoutee` is stored **as the source delivers it** —
+  never estimated or backfilled.
+- **`sous_seuil_diffusion` is NOT derived from a candidate count.** The spike
+  (see `05_Resultats_Spike_Technique.md`, section 3, problem 2) measured 457
+  IVAL GT rows above the threshold with no value — 113 of them in Mayotte,
+  where the value is not computed at all — and 75 below-threshold rows that do
+  carry one. Deriving the flag arithmetically would mislabel a notable share of
+  rows. Store the source's own indication and, where the source gives no
+  reason, record the absence as unexplained rather than attributing it to the
+  threshold.
 - Unmatched establishments (join failures) are logged, not silently dropped.
+  Reference match rate is 98.80%; see DATA-5 for the alerting threshold.
 
 ### DATA-5: Scheduled ingestion job with failure alerting
 **Goal:** wire DATA-3 and DATA-4 into a scheduled job (cron-style, inside the
@@ -122,13 +137,24 @@ blocks (what each indicator measures / doesn't measure).
 - A content change requires an explicit update to this store — document the
   update process in `docs/02_Architecture_Decisions.md` if not already clear.
 
-### API-4: Non-diffusion transparency (F6)
-**Goal:** ensure every response involving a below-threshold indicator
-explains why, using the rule from `docs/03_Glossaire_Metier.md`.
+### API-4: Missing-value transparency (F6)
+**Goal:** ensure every response involving a missing indicator explains the
+absence accurately — without asserting a cause the source does not give.
+**Blocked on a prerequisite:** the exact semantics of the DEPP non-diffusion
+threshold must be confirmed against the official methodology documentation
+before the message text is frozen. See `05_Resultats_Spike_Technique.md`,
+section 3, problem 2.
 **Acceptance criteria:**
-- Message text matches the rule exactly (20 candidates GT / 10 PRO).
-- Covered by a dedicated test using a fixture establishment known to be below
-  threshold.
+- At least two distinct cases are distinguished in the response: a value the
+  source reports as *not published*, and a value simply *not available* with
+  no reason given. A single catch-all message is not acceptable — the spike
+  showed the threshold does not explain every absence.
+- The response never states the effectif threshold as the cause unless the
+  source actually attributes the absence to it.
+- Message text is static versioned content (per API-3) and has passed the
+  human review step required by `CLAUDE.md` for F3/F6/F7 content.
+- Covered by dedicated tests using fixture establishments for each case,
+  including one above-threshold-but-valueless case (e.g. a Mayotte UAI).
 
 ### API-5: Scope disclaimer inclusion (F7)
 **Goal:** every relevant response includes the permanent scope disclaimer.

@@ -15,7 +15,14 @@
 
 ## Identifiants et indicateurs
 
-**UAI** — Identifiant officiel d'un établissement scolaire (Unité Administrative Immatriculée). Clé technique probable pour la jointure entre l'annuaire et les indicateurs de résultats — à confirmer par le spike technique.
+**UAI** — Identifiant officiel d'un établissement scolaire (Unité Administrative Immatriculée). Clé de jointure entre l'annuaire et les indicateurs de résultats, **confirmée fiable à 98,80 % par le spike technique** (15 août 2026).
+
+> Attention : l'UAI **n'est pas unique dans l'annuaire** — 74 identifiants y
+> apparaissent deux fois, des établissements multi-sites partageant un même UAI.
+> Il ne peut donc pas servir de clé primaire sans règle de déduplication
+> préalable (ticket DATA-2). Côté indicateurs en revanche, le couple
+> `(uai, année)` est strictement unique. Voir
+> `05_Resultats_Spike_Technique.md`, section 3.
 
 **IVAC** — Indicateurs de Valeur Ajoutée des Collèges. Disponibles pour les années 2022 à 2025. Mesurent l'écart entre les résultats obtenus par les élèves au diplôme national du brevet et les résultats statistiquement attendus compte tenu de leur profil scolaire et social à l'entrée.
 
@@ -37,6 +44,15 @@ Les résultats en valeur ajoutée **ne sont pas diffusés** :
 
 Cette règle existe pour préserver la fiabilité statistique sur de petits effectifs. Elle doit être respectée et explicitée dans le produit (cf. fonctionnalité F6), jamais contournée ou estimée en interne.
 
+> **Nuance établie par le spike technique (15 août 2026) — à lire avant de rédiger F6.**
+> Cette règle ne se vérifie pas telle quelle dans les données publiées : des
+> lignes au-dessus du seuil n'ont pas de valeur ajoutée (notamment à Mayotte, où
+> elle n'est pas calculée), et quelques lignes en dessous en portent une. Le
+> produit ne doit donc **pas** dériver l'absence d'un comptage de candidats, ni
+> attribuer systématiquement le motif du seuil à toute valeur manquante.
+> Voir `05_Resultats_Spike_Technique.md`, section 3, problème n°2. La sémantique
+> exacte reste à confirmer sur la documentation méthodologique de la DEPP.
+
 ## Typologie des établissements
 
 **Statut** : public / privé sous contrat / privé hors contrat.
@@ -50,7 +66,19 @@ Cette règle existe pour préserver la fiabilité statistique sur de petits effe
 
 ## Sources API techniques (référence rapide)
 
-- Annuaire de l'éducation : `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records`
-- IVAL générale/technologique : dataset `fr-en-indicateurs-de-resultat-des-lycees-gt_v2`
-- IVAL professionnelle : dataset `fr-en-indicateurs-de-resultat-des-lycees-pro_v2`
+Base : `https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/{dataset_id}`
+
+| Rôle | `dataset_id` |
+|---|---|
+| Annuaire de l'éducation | `fr-en-annuaire-education` |
+| IVAC (collèges) | `fr-en-indicateurs-valeur-ajoutee-colleges` |
+| IVAL générale/technologique | `fr-en-indicateurs-de-resultat-des-lycees-gt_v2` |
+| IVAL professionnelle | `fr-en-indicateurs-de-resultat-des-lycees-pro_v2` |
+| IVAL GT — ancienne version (2012–2023) | `fr-en-indicateurs-de-resultat-des-lycees-denseignement-general-et-technologique` |
+| IVAL PRO — ancienne version (2012–2023) | `fr-en-indicateurs-de-resultat-des-lycees-denseignement-professionnels` |
+
+Les anciennes versions ne sont utiles que pour vérifier la continuité
+méthodologique : le spike a établi qu'elles ne contiennent aucune valeur absente
+des jeux `_v2` (cf. `05_Resultats_Spike_Technique.md`, section 2).
+
 - Fiches de résultats officielles (lecture humaine) : `https://www.education.gouv.fr/les-indicateurs-de-resultats-des-colleges-et-des-lycees-377729`

@@ -23,15 +23,25 @@ product code.
 **Entry criteria:** none — this is the first phase.
 
 **Exit criteria (must all be true to proceed to Phase 1):**
-- [ ] Match rate between directory and indicators is measured and documented
-      in `docs/05_Resultats_Spike_Technique.md`.
-- [ ] Go/no-go decision recorded. If no-go (match rate below the quality
+- [x] Match rate between directory and indicators is measured and documented
+      in `docs/05_Resultats_Spike_Technique.md`. — **98.80%**, measured
+      nationally (2026-08-15).
+- [x] Go/no-go decision recorded. If no-go (match rate below the quality
       threshold, e.g. 90%), an alternative join strategy is documented before
       proceeding (e.g. semi-manual reconciliation queue for ambiguous cases).
-- [ ] IVAL methodology continuity documented — any break year identified and
-      how it will be surfaced in the UI (F5) is decided.
-- [ ] Real record counts and field shapes from both source APIs are noted
-      (used later to size the data model correctly).
+      — **GO**; no alternative join strategy needed.
+- [x] IVAL methodology continuity documented — any break year identified and
+      how it will be surfaced in the UI (F5) is decided. — break is **2021**
+      (baccalauréat reform), per-stream only; F5 uses total-level indicators.
+- [x] Real record counts and field shapes from both source APIs are noted
+      (used later to size the data model correctly). — ~68k establishments,
+      ~88k indicator rows, ~21 MB in Postgres.
+
+**Phase 0 closed on 2026-08-15.** Eight adjustments were carried into Phase 1+
+tickets — see the table at the end of `docs/05_Resultats_Spike_Technique.md`.
+Two of them must be settled *before* writing schema code: the UAI deduplication
+rule (DATA-2) and the fact that `sous_seuil_diffusion` cannot be computed from
+a candidate count (DATA-4 / API-4).
 
 **Do not proceed past this phase on assumptions. If the spike is skipped,
 say so explicitly rather than silently building on an unverified join.**
@@ -57,8 +67,12 @@ independent of any HTTP API or LLM layer.
 **Exit criteria:**
 - [ ] Ingestion job runs end-to-end locally via `docker compose up`, populating
       the database from both live source APIs.
-- [ ] Unit tests cover the join logic and the non-diffusion threshold rule
-      (<20 candidates GT, <10 PRO) in isolation, without a real database.
+- [ ] Unit tests cover the join logic and the handling of missing indicator
+      values in isolation, without a real database. Note: the non-diffusion
+      threshold (<20 candidates GT, <10 PRO) must **not** be implemented as a
+      derivation rule — the spike showed it does not predict which values are
+      missing. Test that the source's own indication is preserved, not that a
+      threshold is recomputed.
 - [ ] Ingestion failure (simulated: unreachable source, unexpected schema)
       produces a visible alert/log, not a silent partial import.
 - [ ] Re-running ingestion does not overwrite prior years' indicator rows.
