@@ -50,9 +50,10 @@ dénué de sens. Deux questions distinctes ont donc été mesurées séparément
   d'indicateurs, combien retrouvent une fiche d'annuaire ? C'est la question
   qui décide de la faisabilité du produit.
 - **B — Couverture :** parmi les établissements éligibles de l'annuaire
-  (collège / lycée / EREA, état `OUVERT` — 14 621 établissements), combien
-  disposent d'indicateurs ? C'est une question de périmètre produit, pas un
-  défaut de jointure.
+  (collège / lycée / EREA, état `OUVERT` — **14 621 UAI distincts**, pour
+  14 692 lignes : l'écart de 71 correspond aux doublons multi-sites décrits en
+  section 3), combien disposent d'indicateurs ? C'est une question de périmètre
+  produit, pas un défaut de jointure.
 
 Une ligne dont la valeur ajoutée est nulle **compte comme une jointure
 réussie** : la ligne existe, seule la valeur est légitimement non diffusée.
@@ -285,9 +286,10 @@ source). Le libellé exact relève du contenu éditorial versionné et doit êtr
 validé par un humain — et la sémantique précise du seuil doit être confirmée
 sur la documentation méthodologique DEPP avant de figer le texte de F6.
 
-**3. Géolocalisation :** 133 établissements éligibles sur 14 692 (**0,91 %**)
-n'ont pas de latitude/longitude. La recherche par proximité doit les traiter
-sans échouer, et la fiche rester accessible.
+**3. Géolocalisation :** 133 lignes éligibles sur 14 692 (**0,91 %**) n'ont pas
+de latitude/longitude. La recherche par proximité doit les traiter sans échouer,
+et la fiche rester accessible. *(Décompte en lignes, non dédoublonné — soit
+14 621 UAI distincts, cf. section 1.)*
 
 **4. Détails techniques d'API à reporter en Phase 1 :**
 - `/records` plafonne à 100 lignes par page avec un plafond d'`offset` :
