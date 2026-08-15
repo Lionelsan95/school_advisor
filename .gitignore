@@ -1,0 +1,28 @@
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Spike artifacts — raw API payloads and generated reports are not committed.
+# Only the findings written into docs/05_Resultats_Spike_Technique.md are.
+scripts/spike/output/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

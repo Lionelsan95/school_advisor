@@ -1,0 +1,65 @@
+version: "3.9"
+
+# Local development environment.
+# Design intent: same service shape as the future deployed environment
+# (one backend service, one database, one frontend service) — no extra
+# infrastructure (queues, extra services) beyond what production will need.
+# See docs/architecture-decisions.md for the reasoning behind this simplicity.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: schools_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-schools_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-schools_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-schools_app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile.dev
+    container_name: schools_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-schools_app}:${POSTGRES_PASSWORD:-local_dev_password}@db:5432/${POSTGRES_DB:-schools_db}
+    volumes:
+      - ./back:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn src.interfaces.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile.dev
+    container_name: schools_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: npm run dev -- --host
+
+volumes:
+  db_data:
