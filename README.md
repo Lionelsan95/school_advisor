@@ -45,7 +45,7 @@ LLM provider, change the ingestion source) without touching domain logic.
 
 ## Current status
 
-**Phases 0-3 closed; Phase 4 (frontend MVP) in progress.** The backend
+**Phases 0-4 closed; Phase 5 (history, comparison, export, glossary) in progress.** The backend
 ingests the education datasets and the official commune reference into
 Postgres, and serves factual search and establishment fact sheets. See
 `docs/06_Implementation_Roadmap.md` for the phase gating and

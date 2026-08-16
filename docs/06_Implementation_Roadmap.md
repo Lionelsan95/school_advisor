@@ -294,29 +294,31 @@ scope defined in `docs/01_Vision_Produit.md`).
 **Entry criteria:** Phase 3 exit criteria met.
 
 **Exit criteria:**
-- [ ] End-to-end manual walkthrough of the funnel described in
+- [x] End-to-end manual walkthrough of the funnel described in
       `docs/01_Vision_Produit.md` section "Entonnoir utilisateur" works
       without dead ends.
-- [ ] A non-technical reviewer (or you, wearing that hat) confirms no page
+- [x] A non-technical reviewer (or you, wearing that hat) confirms no page
       reads as a recommendation.
-- [ ] Responsive on mobile viewport — no native app, but must not break on
+- [x] Responsive on mobile viewport — no native app, but must not break on
       small screens.
 
-**Status: implemented, not yet closed.** FE-1, FE-2 and FE-3 are built and
-verified programmatically — 43 frontend tests, oxlint clean, TypeScript build
-clean, and a smoke run against the live API confirming CORS, the response
-shapes, that every result row carries a source, and that the search rows carry
-no figure. What is *not* done is the part that cannot be automated, and which
-is deliberately what all three criteria above ask for:
+**Phase 4 closed on 2026-08-16 on the project owner's review and sign-off.**
 
-> **All three remaining criteria need a human at a screen.** The browser
-> extension was not connected in the session that built this, so no visual pass
-> happened. Specifically still open: walking the funnel end to end, judging
-> whether any page *reads* as a recommendation — which is a reading, not a
-> lint rule, and is exactly why the charter puts a person here — and checking a
-> real mobile viewport, including that the scope disclaimer is visible without
-> scrolling (docs/10 §P8). Ticking these without doing them would defeat their
-> purpose.
+> **What that sign-off did and did not rest on, recorded plainly so a later
+> reader does not over-read it.** The three criteria above are human judgements
+> by design, and the owner reviewed the implementation and accepted it. No
+> automated visual or viewport test backs them: the browser tooling was not
+> connected in the session that built this, so the sign-off rests on the owner's
+> own inspection rather than on a recorded walkthrough. If a later phase needs
+> these criteria to be *evidenced* rather than attested — for an accessibility
+> audit, say — they should be re-run with tooling and the result recorded here.
+> What *is* machine-verified: 46 frontend tests, oxlint, a clean TypeScript
+> build, both CI workflows green, and a live-API smoke run confirming CORS,
+> that every result row carries a source, and that search rows carry no figure.
+
+FE-1, FE-2 and FE-3 are built: the search interface, the establishment fact
+sheet with inline explanations and per-figure sources, and the non-dismissible
+scope disclaimer.
 
 Two decisions taken during the phase, both recorded in
 `04_Journal_Decisions.md`: CORS was added to the backend (a backend change
