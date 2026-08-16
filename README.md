@@ -24,7 +24,7 @@ project-root/
 │   └── pyproject.toml
 │   # (a production Dockerfile arrives in Phase 6 — ticket OPS-1)
 │
-├── front/                  # Empty until Phase 4
+├── front/                  # React + Vite + TypeScript (Phase 4)
 │
 ├── docs/                   # Reference docs (kept in sync with the Claude Project knowledge base)
 ├── scripts/                # One-off / maintenance scripts
@@ -45,10 +45,9 @@ LLM provider, change the ingestion source) without touching domain logic.
 
 ## Current status
 
-**Phase 2 complete; Phase 3 assistant implementation in progress.** The backend
+**Phases 0-3 closed; Phase 4 (frontend MVP) in progress.** The backend
 ingests the education datasets and the official commune reference into
-Postgres, and serves factual search and establishment fact sheets; `front/` is
-still empty. See
+Postgres, and serves factual search and establishment fact sheets. See
 `docs/06_Implementation_Roadmap.md` for the phase gating and
 `docs/05_Resultats_Spike_Technique.md` for the Phase 0 spike findings that the
 data layer is built on.
@@ -56,7 +55,7 @@ data layer is built on.
 What works today: `GET /health`, `GET /establishments/search` (including UAI,
 name, canonical commune and postcode), `GET /communes/search`,
 `GET /establishments/{uai}`, official-data ingestion, and atomic rollback of
-establishments, communes and provenance. The frontend remains a Phase 4 target.
+establishments, communes and provenance.
 `POST /assistant/search` is also live as a bounded structured assistant with
 no conversation or user-session history. UAI, five-digit postcode and simple identity queries bypass the
 provider; complex requests use an Anthropic-first adapter behind a
@@ -79,10 +78,9 @@ cache is intentionally not single-flight.
 ```bash
 cp .env.example .env
 
-# Database + backend. Both have images; `frontend` fails until Phase 4 adds
-# front/Dockerfile.dev, so name the services explicitly for now.
-docker compose up -d db backend
+docker compose up --build -d
 curl http://localhost:8000/health     # {"status":"ok"}
+open http://localhost:5173            # Vite dev server
 ```
 
 Run migrations and a first ingestion from the host:
@@ -126,13 +124,14 @@ TEST_DATABASE_URL=postgresql://schools_app:local_dev_password@localhost:5432/sch
 .venv/bin/mypy src
 ```
 
-`Backend quality gates` now runs on every pull request and push to `main`: one
+`Backend quality gates` runs on every pull request and push to `main` or
+`master` (this repository's default branch is `master`): one
 `ubuntu-latest` job (15-minute timeout), Python 3.12, a health-checked
 `postgis/postgis:16-3.4` service with disposable `schools_db_test`, Alembic to
 head, full `pytest -ra`, Ruff lint/format and `mypy src`. CI receives no
 Anthropic key and makes no live provider or live-source call; provider behavior
-is mocked. The first successful GitHub-hosted run has not yet been observed, so
-Phase 3 remains formally open.
+is mocked. A green hosted run has been observed, which is what closed Phase 3;
+a workflow file alone was deliberately not accepted as evidence.
 
 Phase 0 spike scripts are kept for reference and are disposable — see
 `scripts/spike/README.md`.

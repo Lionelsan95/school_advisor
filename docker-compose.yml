@@ -1,10 +1,8 @@
-version: "3.9"
-
 # Local development environment.
 # Design intent: same service shape as the future deployed environment
 # (one backend service, one database, one frontend service) — no extra
 # infrastructure (queues, extra services) beyond what production will need.
-# See docs/architecture-decisions.md for the reasoning behind this simplicity.
+# See docs/02_Architecture_Decisions.md for the reasoning behind this simplicity.
 
 services:
   db:

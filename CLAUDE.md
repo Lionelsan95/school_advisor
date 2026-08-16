@@ -69,10 +69,9 @@ Full context lives in `docs/`:
 ## Commands
 
 ```bash
-# Local environment
+# Local environment — all three services build and start.
 cp .env.example .env
-# `front/` is empty until Phase 4, so start only implemented services.
-docker compose up -d db backend
+docker compose up --build -d
 
 # Backend — run from back/ (that is where pyproject.toml, tests/ and the venv
 # live; from the repo root these pick up no config and sweep in docs/ etc.)
@@ -104,7 +103,18 @@ python -m src.infrastructure.ingestion --rollback   # undo the last load
 # Apply migrations (also needs DATABASE_URL; it has no fallback by design)
 alembic upgrade head
 
-# Frontend commands become available when Phase 4 creates front/package.json.
+# Frontend — run from front/. The host has no node/npm in this environment, so
+# every npm command runs in a container. Either use the compose service:
+docker compose exec frontend npm run test
+# ...or a throwaway container (the -u keeps generated files owned by you, not
+# root, which is what makes a stray `npm install` on the host bind mount safe):
+docker run --rm -v "$PWD/front:/app" -w /app -u "$(id -u):$(id -g)" \
+  node:22-alpine npm run build
+
+npm run dev      # Vite dev server (compose already runs this)
+npm run build    # tsc -b && vite build
+npm run lint     # oxlint
+npm run test     # vitest run
 ```
 
 `.github/workflows/backend.yml` runs the same backend gates from `back/` on a
@@ -117,7 +127,7 @@ green GitHub Actions run has actually been observed. Normal CI has no Anthropic
 key and must not call a live provider or public source.
 
 - Backend: http://localhost:8000 (health check at `/health`)
-- Frontend: not implemented yet (Phase 4 target: http://localhost:5173)
+- Frontend: http://localhost:5173 (Vite dev server)
 - Database: localhost:5432 (postgis/postgis image)
 
 ## Boundaries

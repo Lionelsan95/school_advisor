@@ -1,0 +1,22 @@
+# Local development image. docker-compose.yml mounts ./front over /app and runs
+# `npm run dev -- --host`, mirroring back/Dockerfile.dev's shape.
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy only the manifests first so the dependency layer caches across code
+# edits. package-lock.json is copied with a glob so the image still builds
+# before the first `npm install` has produced one.
+COPY package.json package-lock.json* ./
+
+RUN npm install
+
+COPY . .
+
+# docker-compose mounts ./front over /app, which would hide the node_modules
+# installed above. The compose file declares an anonymous volume on
+# /app/node_modules to keep them; this line documents why that volume is not
+# optional — without it the container starts with no dependencies at all.
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host"]
