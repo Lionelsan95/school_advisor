@@ -2,3 +2,4 @@
 - [ODS/data.education.gouv.fr data source gaps](reference_ods_data_sources.md) — IVAC dataset id undocumented, ODS pagination caps, network reachability check
 - [Phase 1 data layer plan](project_phase1_data_layer_plan.md) — DATA-1..5 plan; etablissement_mere doesn't solve UAI dedup, no reliable natural dedup key, sous_seuil_diffusion source-field gap, stack picks (psycopg3/httpx/apscheduler, no ORM)
 - [Phase 2 read API — decisions and data gaps](project_phase2_read_api.md) — layering for API-1..API-6, and 3 contract-vs-data gaps (moyenne académique/nationale and identity filiere/effectif never ingested, source_reference never populated)
+- [Phase 4 frontend MVP plan](project_phase4_frontend_mvp_plan.md) — FE-1..3 stack picks (TS/React Router/plain fetch hook/CSS Modules), CORS missing in backend (blocking gap), search-card year/status UX-vs-API gap, structural Figure component approach

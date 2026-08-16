@@ -13,13 +13,14 @@ from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from psycopg import IsolationLevel
 from psycopg_pool import ConnectionPool
 
 from src.infrastructure.ingestion.job import start_scheduler
 from src.infrastructure.llm.anthropic_interpreter import AnthropicQueryInterpreter
 from src.infrastructure.llm.interpretation_cache import InMemoryInterpretationCache
-from src.infrastructure.settings import get_settings
+from src.infrastructure.settings import get_cors_origins, get_settings
 from src.interfaces.api import assistant, communes, establishments
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,22 @@ app = FastAPI(
         "This service describes official data; it does not rank or recommend."
     ),
     lifespan=lifespan,
+)
+
+# The frontend is served from a different origin than the API (Vite on :5173,
+# API on :8000), so without this the browser refuses every call. Origins come
+# from settings rather than the code: a deployment must name its own domain,
+# and the Definition of Done (§5) forbids environment-specific values here.
+#
+# Only GET and POST are allowed, and no credentials: this API is read-only
+# public data with no cookies or auth, so allowing more would widen the surface
+# for nothing. The read-only pool already refuses writes at the database level.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 

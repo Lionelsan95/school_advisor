@@ -37,6 +37,39 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
 
+class CorsSettings(BaseSettings):
+    """CORS configuration, deliberately separate from `Settings`.
+
+    CORS middleware has to be installed when the app object is constructed, at
+    import time — but `Settings` requires `DATABASE_URL`, and importing the app
+    module must not require a database to be configured. Tests import it to
+    check routing and headers, and a missing database should fail when the
+    application tries to use one, not when Python reads the file.
+
+    Same sources as `Settings` (environment, then `.env`), so it is configured
+    the same way despite being a separate class.
+    """
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # The Vite dev server and nothing else. A deployment serving the frontend
+    # from a real domain must name it explicitly rather than inherit a
+    # permissive default, and never "*": these responses are public data today,
+    # but a wildcard would be silently inherited by anything added later.
+    cors_allowed_origins: str = "http://localhost:5173"
+
+
+def get_cors_origins() -> list[str]:
+    """The configured origins, split into the list Starlette expects.
+
+    Blank entries are dropped so a trailing comma in an env file cannot become
+    an empty origin — which matches nothing and is tedious to diagnose from a
+    browser console.
+    """
+    raw = CorsSettings().cors_allowed_origins
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
 def get_settings() -> Settings:
     # pydantic-settings fills every field from the environment, so the
     # required `database_url` is supplied at runtime even though mypy cannot
