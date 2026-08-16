@@ -15,6 +15,7 @@ from src.application.assistant_search import (
     AssistantSearchUnavailable,
     ClarificationKind,
     InvalidAssistantQueryError,
+    UnavailableReason,
 )
 from src.application.interpret_search import (
     InterpretedSearch,
@@ -396,7 +397,13 @@ def test_evaluative_word_cannot_be_reused_as_an_establishment_name() -> None:
 
     outcome = assistant.run(query)
 
-    assert isinstance(outcome, AssistantSearchUnavailable)
+    # The whole interpretation is discarded, not just the evaluative word: no
+    # partial establishment_type/sector/place_query leak survives the
+    # rejection.
+    assert outcome == AssistantSearchUnavailable(
+        reason=UnavailableReason.INTERPRETATION_REJECTED,
+        subjective_request_reframed=True,
+    )
     assert interpreter.calls == [query]
     assert communes.calls == []
     assert establishments.calls == []
@@ -901,6 +908,68 @@ def test_provider_failure_is_confined_to_the_optional_interpretation_path() -> N
     outcome = assistant.run("collèges publics autour de Paris")
 
     assert isinstance(outcome, AssistantSearchUnavailable)
+    assert interpreter.calls == ["collèges publics autour de Paris"]
+    assert communes.calls == []
+    assert establishments.calls == []
+
+
+def test_subjective_query_with_no_factual_criterion_is_a_refusal() -> None:
+    """A purely subjective request ("Quel est le meilleur collège ?", no
+    place/type/sector to salvage) must be labelled a deliberate refusal to
+    rank, not a generic provider failure — this is the bug fixed here: the
+    charter's §12 answer (assistant_content.SUBJECTIVE_REQUEST_REFRAME) only
+    reaches the user on the INTERPRETATION_REJECTED path.
+    """
+    query = "Quel est le meilleur collège ?"
+    assistant, interpreter, communes, establishments = _assistant(InterpretedSearch())
+
+    outcome = assistant.run(query)
+
+    assert outcome == AssistantSearchUnavailable(
+        reason=UnavailableReason.INTERPRETATION_REJECTED,
+        subjective_request_reframed=True,
+    )
+    assert interpreter.calls == [query]
+    assert communes.calls == []
+    assert establishments.calls == []
+
+
+def test_provider_outage_on_a_subjective_query_is_not_relabelled_as_a_refusal() -> None:
+    """Mirror image of the fix above: a real provider outage on a subjective
+    query must stay PROVIDER_UNAVAILABLE. Relabelling every subjective query
+    as a refusal — regardless of what actually happened — would misreport a
+    technical failure just as wrongly as the original bug misreported a
+    refusal.
+    """
+    query = "Quel est le meilleur collège ?"
+    assistant, interpreter, communes, establishments = _assistant(
+        InterpreterUnavailableError("provider down")
+    )
+
+    outcome = assistant.run(query)
+
+    assert outcome == AssistantSearchUnavailable(
+        reason=UnavailableReason.PROVIDER_UNAVAILABLE,
+        subjective_request_reframed=True,
+    )
+    assert interpreter.calls == [query]
+    assert communes.calls == []
+    assert establishments.calls == []
+
+
+def test_rejected_interpretation_on_a_neutral_query_is_not_a_refusal() -> None:
+    """A rejected interpretation of a non-subjective query is still a refusal
+    in the technical sense (INTERPRETATION_REJECTED), but must not carry the
+    subjective flag: there was no ranking request to refuse.
+    """
+    assistant, interpreter, communes, establishments = _assistant(InterpretedSearch())
+
+    outcome = assistant.run("collèges publics autour de Paris")
+
+    assert outcome == AssistantSearchUnavailable(
+        reason=UnavailableReason.INTERPRETATION_REJECTED,
+        subjective_request_reframed=False,
+    )
     assert interpreter.calls == ["collèges publics autour de Paris"]
     assert communes.calls == []
     assert establishments.calls == []

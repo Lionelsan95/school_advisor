@@ -169,9 +169,34 @@ class AssistantSearchClarification:
     subjective_request_reframed: bool = False
 
 
+class UnavailableReason(StrEnum):
+    """Why no search was run.
+
+    The distinction is not cosmetic. `PROVIDER_UNAVAILABLE` is a technical
+    failure we should own; `INTERPRETATION_REJECTED` is a deliberate refusal —
+    we obtained an interpretation and declined it, because it rested on no
+    verifiable factual criterion or on wording the query did not support.
+    Reporting a refusal as a failure tells the user something untrue about
+    what this service did, and hides the one answer the charter (§12) exists
+    to give for a ranking request.
+    """
+
+    PROVIDER_UNAVAILABLE = "interpretation_indisponible"
+    INTERPRETATION_REJECTED = "interpretation_refusee"
+
+
 @dataclass(frozen=True, slots=True)
 class AssistantSearchUnavailable:
-    """Only the optional interpretation path is unavailable."""
+    """No search was run; only the optional interpretation path is affected.
+
+    `subjective_request_reframed` is carried here as it is on the success and
+    clarification outcomes, so the "this service does not rank" statement
+    reaches the user on every path a ranking request can take — not only the
+    paths that happen to return results.
+    """
+
+    reason: UnavailableReason = UnavailableReason.PROVIDER_UNAVAILABLE
+    subjective_request_reframed: bool = False
 
 
 AssistantSearchOutcome = (
@@ -285,7 +310,10 @@ class AssistantSearch:
             try:
                 intent = self._interpreter.interpret(cleaned)
             except InterpreterUnavailableError:
-                return AssistantSearchUnavailable()
+                return AssistantSearchUnavailable(
+                    reason=UnavailableReason.PROVIDER_UNAVAILABLE,
+                    subjective_request_reframed=subjective,
+                )
 
         try:
             self._validate_intent(
@@ -294,7 +322,13 @@ class AssistantSearch:
                 require_lexical_support=interpreted_by_provider,
             )
         except ValueError:
-            return AssistantSearchUnavailable()
+            # We had an interpretation and turned it down — it carried no
+            # verifiable factual criterion, or wording the query did not
+            # support. That is a refusal, not an outage.
+            return AssistantSearchUnavailable(
+                reason=UnavailableReason.INTERPRETATION_REJECTED,
+                subjective_request_reframed=subjective,
+            )
         if (
             interpreted_by_provider
             and not cache_hit

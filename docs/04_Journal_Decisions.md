@@ -430,3 +430,33 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
 - **Statut de preuve :** le workflow est configuré et son équivalent local a
   passé 510 tests sans skip, mais aucun run GitHub hébergé réussi n'a encore été
   observé. La présence du fichier ne clôt donc pas seule AGENT-3/Phase 3.
+
+### 2026-08-16 — Un refus de classer n'est pas une panne
+- **Contexte :** une demande purement subjective sans critère factuel
+  exploitable (« Quel est le meilleur collège ? », sans commune ni type ni
+  secteur) renvoyait le message générique « L'interprétation en langage naturel
+  n'est pas disponible ». Le drapeau `subjective` était perdu lorsque
+  `_validate_intent` rejetait l'intention.
+- **Constat :** aucun classement n'était produit et aucun mot évaluatif n'était
+  émis — la charte n'était donc pas enfreinte. Mais le produit présentait un
+  **refus délibéré** comme une **panne technique**, et la réponse prévue par la
+  charte (§ 12, « Ce service ne classe pas et ne recommande pas les
+  établissements ») n'atteignait jamais l'utilisateur dans le cas précis pour
+  lequel elle existe.
+- **Décision :** distinguer deux causes dans `AssistantSearchUnavailable`
+  (`UnavailableReason`) : `PROVIDER_UNAVAILABLE` (le fournisseur est
+  injoignable — une panne que nous assumons) et `INTERPRETATION_REJECTED` (nous
+  avons obtenu une interprétation et l'avons écartée — un refus). Le
+  sérialiseur choisit alors entre deux textes **déjà approuvés** ; aucun
+  nouveau contenu éditorial n'a été rédigé, donc aucune nouvelle validation
+  humaine n'était requise.
+- **Point subtil :** en cas de panne réelle sur une requête subjective, le
+  message reste celui de la panne — mentir sur la cause dans l'autre sens
+  serait la même faute — mais la position du service sur le classement est
+  portée par `reformulation_neutre`. Une panne ne doit pas devenir un moyen de
+  ne pas dire que nous ne classons pas.
+- **Alternatives écartées :** afficher systématiquement la reformulation dès
+  qu'une requête est subjective, écartée car elle aurait masqué les pannes
+  réelles ; rédiger un troisième message, écartée car elle aurait exigé une
+  nouvelle revue éditoriale pour un gain nul.
+- **Réversibilité :** facile.

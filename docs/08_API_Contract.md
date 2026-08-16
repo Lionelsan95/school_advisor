@@ -397,9 +397,30 @@ The response is one of three discriminated shapes:
   approved static question; `options` contains only official commune matches;
   `source` contains commune provenance when a lookup occurred, otherwise
   `null`; `reformulation_neutre` is nullable.
-- `etat: "indisponible"` — HTTP `200` with the approved static `message`. Only
-  optional language interpretation is unavailable; the structured endpoints
+- `etat: "indisponible"` — HTTP `200` with an approved static `message` and a
+  nullable `reformulation_neutre`. No search was run; the structured endpoints
   remain accessible.
+
+  Which message leads depends on what actually happened, because a refusal and
+  an outage are different events and must not be reported as the same one:
+
+  | Cause | `message` | `reformulation_neutre` |
+  |---|---|---|
+  | Interpretation **rejected**, subjective request | subjective-query reframe (content 1) | `null` |
+  | Interpretation **rejected**, neutral request | interpreter-unavailable (content 6) | `null` |
+  | Provider **unreachable**, subjective request | interpreter-unavailable (content 6) | subjective-query reframe (content 1) |
+  | Provider **unreachable**, neutral request | interpreter-unavailable (content 6) | `null` |
+
+  "Rejected" means an interpretation was obtained and turned down — it rested
+  on no verifiable factual criterion, or on wording the query did not support.
+  A request such as « Quel est le meilleur collège ? » with no place, type or
+  sector lands there, and receives the charter's § 12 answer rather than being
+  told the service is unavailable, which would be untrue.
+
+  When the provider is genuinely unreachable the outage is reported as an
+  outage, but a subjective request still gets the no-ranking statement in
+  `reformulation_neutre`: a technical failure must not become a way for the
+  service's position on ranking to go unsaid.
 
 Version-1 assistant content, explicitly human-approved on 2026-08-15:
 

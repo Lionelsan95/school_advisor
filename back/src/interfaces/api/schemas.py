@@ -21,6 +21,7 @@ from src.application.assistant_search import (
     AssistantSearchSuccess,
     AssistantSearchUnavailable,
     ClarificationKind,
+    UnavailableReason,
 )
 from src.application.get_establishment_fact_sheet import FactSheet, Figure, ResultRow
 from src.application.ports import SearchCriteria
@@ -455,9 +456,39 @@ class AssistantSearchClarificationOut(BaseModel):
 
 
 class AssistantSearchUnavailableOut(BaseModel):
+    """No search was run.
+
+    Which of the two approved messages leads depends on what actually
+    happened. A rejected interpretation of a subjective request is a refusal to
+    rank, and says so; anything else reports the interpretation as
+    unavailable, which is what it was. No wording is composed here — both
+    strings come from the versioned, human-approved assistant content.
+
+    When a ranking request fails for a genuinely technical reason, the refusal
+    to rank still travels alongside in `reformulation_neutre` rather than being
+    dropped, so the service's position is never hidden behind an outage.
+    """
+
     etat: Literal["indisponible"] = "indisponible"
     message: str = assistant_content.INTERPRETER_UNAVAILABLE
+    reformulation_neutre: str | None = None
 
     @classmethod
     def of(cls, outcome: AssistantSearchUnavailable) -> AssistantSearchUnavailableOut:
-        return cls()
+        refused_a_ranking_request = (
+            outcome.reason is UnavailableReason.INTERPRETATION_REJECTED
+            and outcome.subjective_request_reframed
+        )
+        if refused_a_ranking_request:
+            return cls(
+                message=assistant_content.SUBJECTIVE_REQUEST_REFRAME,
+                reformulation_neutre=None,
+            )
+        return cls(
+            message=assistant_content.INTERPRETER_UNAVAILABLE,
+            reformulation_neutre=(
+                assistant_content.SUBJECTIVE_REQUEST_REFRAME
+                if outcome.subjective_request_reframed
+                else None
+            ),
+        )

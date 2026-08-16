@@ -20,6 +20,10 @@ import re
 
 import pytest
 
+from src.application.assistant_search import (
+    AssistantSearchUnavailable,
+    UnavailableReason,
+)
 from src.domain import assistant_content
 from src.domain import explanatory_content as content
 from src.interfaces.api.assistant import _MISSING_ASSISTANT_SOURCE_MESSAGE
@@ -29,6 +33,7 @@ from src.interfaces.api.establishments import (
     _MISSING_SEARCH_SOURCE_MESSAGE,
     _NO_RANKING_MESSAGE,
 )
+from src.interfaces.api.schemas import AssistantSearchUnavailableOut
 
 # docs/09_Definition_of_Done_Quality_Gates.md §1 ("best", "good", "excellent",
 # "top", "recommended", "better than", "bon", "meilleur", "recommandé",
@@ -209,3 +214,23 @@ class TestNoForbiddenWordInDataIntegrityMessage:
             "missing search source message contains "
             f"{match.group() if match else None!r}: {message!r}"
         )
+
+
+class TestSubjectiveRefusalMessageIsTheApprovedConstantVerbatim:
+    """docs/14_Charte_Neutralite_Editoriale.md §12 prescribes one exact
+    sentence for a recommendation request. The refusal path must hand back
+    that module constant untouched — never rebuilt via f-string,
+    concatenation, or `.format()`, any of which could silently drift from the
+    human-approved wording while still passing a plain string-equality check.
+    `is` catches that drift; `==` would not.
+    """
+
+    def test_refusal_message_is_identity_equal_to_the_approved_constant(self) -> None:
+        outcome = AssistantSearchUnavailable(
+            reason=UnavailableReason.INTERPRETATION_REJECTED,
+            subjective_request_reframed=True,
+        )
+
+        body = AssistantSearchUnavailableOut.of(outcome)
+
+        assert body.message is assistant_content.SUBJECTIVE_REQUEST_REFRAME

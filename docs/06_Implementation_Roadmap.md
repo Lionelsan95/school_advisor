@@ -263,18 +263,19 @@ successful hosted CI execution, now recorded above. The CI push trigger had to
 be corrected first: it listed `main` only, while this repository's default
 branch is `master`, so it would never have fired.
 
-> **Known gap, not blocking (found by `neutrality-checker`, 2026-08-16).** A
-> request that is *purely* subjective, with no salvageable factual criterion —
-> "Quel est le meilleur collège ?" with no place, type or sector — currently
-> returns the generic "interpretation unavailable" message instead of the
-> charter's own §12 answer (`SUBJECTIVE_REQUEST_REFRAME`, "Ce service ne classe
-> pas et ne recommande pas les établissements"). Nothing is ranked and no
-> evaluative wording is emitted, so the charter is not breached; but the user
-> is told this is a technical unavailability, which it is not, and is invited
-> to retry with a structured search that has nothing to search on. Root cause:
-> `AssistantSearchUnavailable` carries no flag, so the `subjective` signal is
-> discarded when `_validate_intent` rejects a criteria-less intent
-> (`assistant_search.py:296-297`). Tracked for a follow-up ticket.
+> **~~Known gap~~ — fixed 2026-08-16.** Resolved by distinguishing a refusal
+> from an outage; see `04_Journal_Decisions.md`, « Un refus de classer n'est pas
+> une panne ». Original description follows.
+>
+> A request that was *purely* subjective, with no salvageable factual
+> criterion — "Quel est le meilleur collège ?" with no place, type or sector —
+> returned the generic "interpretation unavailable" message instead of the
+> charter's own §12 answer. Nothing was ranked and no evaluative wording was
+> emitted, so the charter was not breached; but the user was told this was a
+> technical unavailability, which it was not, and was invited to retry with a
+> structured search that had nothing to search on. Root cause:
+> `AssistantSearchUnavailable` carried no flag, so the `subjective` signal was
+> discarded when `_validate_intent` rejected a criteria-less intent.
 
 ---
 

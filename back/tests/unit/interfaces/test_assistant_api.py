@@ -14,6 +14,7 @@ from src.application.assistant_search import (
     AssistantSearchUnavailable,
     ClarificationKind,
     InvalidAssistantQueryError,
+    UnavailableReason,
 )
 from src.application.ports import (
     CommuneSearchHit,
@@ -213,10 +214,79 @@ def test_provider_unavailable_uses_the_approved_static_fallback(client_for) -> N
     )
 
     assert response.status_code == 200
+    # A neutral query, so there is no ranking stance to restate alongside.
     assert response.json() == {
         "etat": "indisponible",
         "message": assistant_content.INTERPRETER_UNAVAILABLE,
+        "reformulation_neutre": None,
     }
+
+
+@pytest.mark.parametrize(
+    ("reason", "subjective", "expected_message", "expected_reformulation"),
+    [
+        (
+            UnavailableReason.INTERPRETATION_REJECTED,
+            True,
+            assistant_content.SUBJECTIVE_REQUEST_REFRAME,
+            None,
+        ),
+        (
+            UnavailableReason.INTERPRETATION_REJECTED,
+            False,
+            assistant_content.INTERPRETER_UNAVAILABLE,
+            None,
+        ),
+        (
+            UnavailableReason.PROVIDER_UNAVAILABLE,
+            True,
+            assistant_content.INTERPRETER_UNAVAILABLE,
+            assistant_content.SUBJECTIVE_REQUEST_REFRAME,
+        ),
+        (
+            UnavailableReason.PROVIDER_UNAVAILABLE,
+            False,
+            assistant_content.INTERPRETER_UNAVAILABLE,
+            None,
+        ),
+    ],
+    ids=[
+        "rejected-subjective-is-the-charter-refusal",
+        "rejected-neutral-reports-unavailable",
+        "provider-outage-subjective-keeps-the-no-ranking-stance",
+        "provider-outage-neutral-reports-unavailable",
+    ],
+)
+def test_unavailable_reason_and_subjective_flag_select_the_exact_wire_body(
+    client_for,
+    reason: UnavailableReason,
+    subjective: bool,
+    expected_message: str,
+    expected_reformulation: str | None,
+) -> None:
+    """The four (reason x subjective) combinations must each produce exactly
+    the wire body the charter and the fix intend — in particular, a real
+    provider outage on a subjective query still carries the no-ranking stance
+    in `reformulation_neutre` rather than dropping it (case 3), and only the
+    rejected+subjective combination gets the charter's §12 refusal as the
+    leading `message` (case 1).
+    """
+    outcome = AssistantSearchUnavailable(
+        reason=reason, subjective_request_reframed=subjective
+    )
+    client, _ = client_for(outcome)
+
+    response = client.post(
+        "/assistant/search", json={"requete": "Quel est le meilleur collège ?"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["etat"] == "indisponible"
+    assert body["message"] == expected_message
+    assert body["reformulation_neutre"] == expected_reformulation
+    assert "resultats" not in body
+    assert "recherche" not in body
 
 
 @pytest.mark.parametrize(
