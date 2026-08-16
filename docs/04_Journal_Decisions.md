@@ -536,3 +536,34 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   du dépôt montée, pas seulement `front/`, sinon la charte est introuvable.
   Documenté dans CLAUDE.md.
 - **Réversibilité :** facile.
+
+### 2026-08-16 — La comparaison est alignée côté serveur, pas côté client
+- **Contexte :** la charte (§ 11) interdit de calculer un écart global, un
+  nombre de critères remportés, une moyenne, un score pondéré, un verdict ou
+  une recommandation. Le contrat esquissé en Phase 1 renvoyait deux fiches
+  brutes (`{establishments: [A, B]}`) et laissait le client les apparier par
+  année.
+- **Décision :** aligner les lignes dans le backend. Remettre deux fiches
+  brutes place les deux valeurs d'une même année côte à côte **dans le code
+  client** — précisément l'endroit où les soustraire devient la ligne suivante
+  la plus naturelle. Pré-alignées, les cellules se rendent une à une et le
+  client ne détient jamais une paire en attente d'opération. Même raisonnement
+  que l'absence de propriété `variant` sur `Figure` : rendre le geste interdit
+  impossible à écrire, plutôt que simplement non écrit.
+- **Union des années, pas intersection :** un lycée (IVAL, dès 2012) face à un
+  collège (IVAC, dès 2022) produit les 14 lignes. L'intersection masquerait dix
+  années réellement publiées pour rendre le tableau plus net.
+- **Une année non publiée n'est pas une valeur absente :** deux contenus
+  éditoriaux distincts. Une colonne vide à côté d'une colonne remplie se lit
+  comme une défaite, alors qu'elle ne signifie souvent que « IVAC commence plus
+  tard ».
+- **Point de vigilance :** le mot « écart » apparaît légitimement dans la
+  définition de la valeur ajoutée (écart entre résultat observé et attendu).
+  Les contrôles automatiques interdisent donc ces termes sur les **clés**, et
+  exemptent le bloc `explications` — tout en vérifiant que ce bloc est
+  identique, octet pour octet, à celui servi par la fiche, pour que l'exemption
+  ne serve pas à faire passer un texte réécrit.
+- **`MAX_COMPARED = 2` :** doc 07 dit « deux (max trois) », mais doc 01 (F4) et
+  doc 13 § 9 disent deux, et la maquette mobile de doc 13 suppose deux colonnes
+  A/B. Les deux spécifications les plus détaillées l'emportent.
+- **Réversibilité :** coûteuse une fois le contrat publié.

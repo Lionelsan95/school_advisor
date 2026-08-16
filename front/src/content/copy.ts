@@ -198,3 +198,24 @@ export const HISTORY = {
   breakHeading: "Changement de méthode",
   backToSheet: "Revenir à la fiche",
 };
+
+/**
+ * Comparison (F4). Charter §11: "comparaison" means placing data in parallel,
+ * not evaluating it. Nothing here summarises, concludes or names a preference,
+ * and no string below refers to a difference between the two columns.
+ */
+export const COMPARE = {
+  heading: "Comparaison",
+  intro:
+    "Les données des deux établissements sont présentées côte à côte, année " +
+    "par année. Aucun écart n'est calculé et aucun établissement n'est " +
+    "désigné.",
+  add: "Ajouter à la comparaison",
+  remove: "Retirer de la comparaison",
+  selectedCount: (n: number) => `${n} établissement(s) sélectionné(s) sur 2`,
+  open: "Voir la comparaison",
+  clear: "Vider la sélection",
+  needTwo: "Sélectionnez deux établissements pour les comparer.",
+  yearColumn: "Année",
+  notPublishedForThis: "Année non publiée",
+};

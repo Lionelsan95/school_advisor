@@ -269,8 +269,53 @@ EXPECTED_RATE: Final = ExplanatoryContent(
 )
 
 
+# --------------------------------------------------------------------------
+# F4 — a year one establishment published and another did not.
+#
+# Distinct from ABSENT_VALUE, and the distinction is load-bearing. ABSENT_VALUE
+# covers a published row whose figure is empty. This covers an establishment
+# that has no row for the year at all — which is the normal case when a collège
+# (IVAC, from 2022) is placed beside a lycée (IVAL, from 2012), and says
+# nothing whatever about either establishment.
+#
+# Without its own wording, a comparison table would render this as the same
+# blank as a withheld figure, and a reader would take the two for the same
+# thing. One means "not measured for this establishment that year"; the other
+# means "measured, not published".
+# --------------------------------------------------------------------------
+
+YEAR_NOT_PUBLISHED: Final = ExplanatoryContent(
+    content_id="annee_non_publiee",
+    version=1,
+    title="Année non publiée pour cet établissement",
+    simple_definition=(
+        "Aucun résultat n'est publié pour cet établissement pour cette année."
+    ),
+    how_to_read=(
+        "Cette absence ne se compare pas. Elle indique seulement que l'année "
+        "ne figure pas dans la série publiée pour cet établissement."
+    ),
+    what_it_measures=(
+        "Les séries n'ont pas la même profondeur selon le type "
+        "d'établissement : les indicateurs des collèges commencent en 2022, "
+        "ceux des lycées en 2012. Un établissement peut aussi n'avoir pas "
+        "existé, ou ne pas avoir présenté de candidats, cette année-là."
+    ),
+    what_it_does_not_measure=(
+        "Cette absence ne dit rien des résultats de l'établissement, ni de "
+        "ceux de l'établissement placé à côté."
+    ),
+    method=None,
+    source_note=(
+        "Profondeur des séries publiées par la DEPP : IVAC à partir de 2022, "
+        "IVAL à partir de 2012."
+    ),
+)
+
+
 _ALL: Final = (
     ABSENT_VALUE,
+    YEAR_NOT_PUBLISHED,
     VALUE_ADDED,
     SUCCESS_RATE,
     ACCESS_RATE,

@@ -8,8 +8,8 @@ documentation practices).*
 > **Implementation status (Phase 5 in progress, 2026-08-16).** Live and matching
 > this document: `GET /health`, `GET /establishments/search`,
 > `GET /establishments/{uai}`, `GET /establishments/{uai}/history`,
-> `GET /communes/search` and `POST /assistant/search`. Still target-shape only:
-> `/compare` and `/glossary` (Phase 5, not yet built).
+> `GET /establishments/compare`, `GET /communes/search` and
+> `POST /assistant/search`. Still target-shape only: `/glossary` (Phase 5).
 >
 > The three live data-endpoint sections below were rewritten against the running code. Three
 > groups of fields promised by the Phase 1 draft were **removed because no
@@ -363,16 +363,73 @@ IVAL (lycées) covers 2012–2025, IVAC (collèges) only 2022–2025.
 
 ## `GET /establishments/compare?uai=A&uai=B`
 
-**Response:** array of full fact sheets (same shape as
-`GET /establishments/{uai}`), returned side by side with no computed
-comparison score.
+**Live.** Two establishments' published records, aligned by year (F4).
 
+Exactly two `uai` parameters. One, three, or the same UAI twice returns `400` —
+never silently truncated to a valid pair, since a caller who asked for three and
+received two would reasonably believe they were seeing all three. `404` if
+either is unknown, `503` on missing provenance, `400` on any sort parameter.
+
+**This replaces the Phase 1 sketch** (`{ "establishments": [sheetA, sheetB] }`),
+which is not merely incomplete but the wrong shape. Handing the client two raw
+fact sheets puts A's and B's value for a year side by side in client code —
+exactly where subtracting them becomes the natural next line. The charter (§11)
+forbids computing a gap, a count of criteria won, an average, a weighted score,
+a verdict or a recommendation; **aligning the rows server-side means the client
+never holds the two values as a pair awaiting an operation.** Same reasoning as
+`Figure` having no `variant` prop: the forbidden thing is made un-buildable
+rather than merely unwritten.
+
+**Response:**
 ```json
 {
-  "establishments": [ /* fact sheet A */, /* fact sheet B */ ],
-  "scope_disclaimer": "..."
+  "etablissements": [
+    { "uai": "0800001S", "nom": "…", "type": "lycee", "statut_public_prive": "public", "commune": "Abbeville" },
+    { "uai": "0801512J", "nom": "…", "type": "college", "statut_public_prive": "public", "commune": "Abbeville" }
+  ],
+  "lignes": [
+    {
+      "annee": 2023,
+      "cellules": [
+        { "uai": "0800001S", "annee_publiee": true,  "resultat": { /* ResultOut */ }, "explication_absence": null },
+        { "uai": "0801512J", "annee_publiee": true,  "resultat": { /* ResultOut */ }, "explication_absence": null }
+      ]
+    },
+    {
+      "annee": 2013,
+      "cellules": [
+        { "uai": "0800001S", "annee_publiee": true,  "resultat": { /* ResultOut */ }, "explication_absence": null },
+        { "uai": "0801512J", "annee_publiee": false, "resultat": null, "explication_absence": "annee_non_publiee" }
+      ]
+    }
+  ],
+  "explications": { /* the fact sheet's six blocks, plus annee_non_publiee */ },
+  "rappel_de_portee": "…"
 }
 ```
+
+**Years are the union, not the intersection.** A lycée (IVAL, from 2012) beside
+a collège (IVAC, from 2022) yields all 14 rows. Taking the intersection would
+discard ten years of genuinely published data to make the table tidy.
+
+**`annee_publiee: false` is not the same as an absent figure.**
+`explication_absence: "annee_non_publiee"` means this establishment has no
+published row for that year at all — normally just IVAC starting later — and is
+a different static block from the one used for a missing figure *inside* a
+published row. Rendering both as the same blank would let a reader take one for
+the other, and a blank column beside a filled one reads as a loss.
+
+`cellules` follows the order the `uai` parameters were given, so a caller can
+rely on which column is which.
+
+**Note on vocabulary.** A successful response does contain the word "écart" —
+inside `explications.valeur_ajoutee`, which is the DEPP's own definition of
+value added (the gap between an establishment's observed and *expected*
+result). That is not a gap between the two compared establishments. Automated
+neutrality checks therefore ban those tokens on **keys anywhere**, exempt the
+`explications` block, and separately assert that block is byte-identical to
+what `GET /establishments/{uai}` serves — so the exemption cannot be used to
+smuggle in reworded content.
 
 ---
 

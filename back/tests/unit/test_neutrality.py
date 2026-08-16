@@ -287,3 +287,38 @@ class TestMethodologyBreakNoteStatesNonComparabilityNotADirection:
     def test_the_note_states_the_values_are_not_comparable(self) -> None:
         note = IVAL_BACCALAUREAT_REFORM.note.lower()
         assert "comparables" in note
+
+
+class TestYearNotPublishedContentIsScannedAndNeverImpliesADeficiency:
+    """API-8 / F4 — `YEAR_NOT_PUBLISHED` (content_id "annee_non_publiee") is
+    the static block a comparison cell points at when one establishment has
+    no row at all for a year the other one published. It is registered in
+    `content.CONTENT_BY_ID`, so `_all_content_strings()` already picks it up
+    and the parametrized `TestNoForbiddenWordInExplanatoryContent` above
+    already scans it for evaluative wording — this class pins that inclusion
+    explicitly, so a future refactor of `_all_content_strings()` cannot drop
+    it silently, and adds the two checks the forbidden-word scan alone cannot
+    make: that the wording states an absence *for this establishment*
+    (never for the one placed next to it), and that it explicitly disclaims
+    comparison rather than reading as a deficiency.
+    """
+
+    def test_the_block_is_registered_and_therefore_already_scanned_above(self) -> None:
+        assert content.YEAR_NOT_PUBLISHED.content_id in content.CONTENT_BY_ID
+        scanned_ids = {content_id for content_id, _, _ in _CONTENT_STRINGS}
+        assert content.YEAR_NOT_PUBLISHED.content_id in scanned_ids
+
+    def test_wording_explicitly_disclaims_comparison(self) -> None:
+        how_to_read = content.YEAR_NOT_PUBLISHED.how_to_read.lower()
+        assert "ne se compare pas" in how_to_read
+
+    def test_wording_states_absence_for_this_establishment_not_a_deficiency(
+        self,
+    ) -> None:
+        block = content.YEAR_NOT_PUBLISHED
+        assert "cet établissement" in block.simple_definition.lower()
+        what_it_does_not_measure = block.what_it_does_not_measure.lower()
+        # It must say nothing about either establishment's results — not this
+        # one's, and not the one placed alongside it in the comparison.
+        assert "ne dit rien des résultats" in what_it_does_not_measure
+        assert "établissement placé à côté" in what_it_does_not_measure

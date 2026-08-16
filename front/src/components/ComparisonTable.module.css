@@ -1,0 +1,17 @@
+.wrap { margin-top: var(--space-4); }
+.year { border: 1px solid var(--c-rule); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-4); }
+.yearTitle { margin: 0 0 var(--space-3); font-size: var(--text-base); }
+/* Stacked on mobile, two equal columns above — never a horizontally scrolling
+   table (docs/13 §9). Equal width matters: a wider column reads as the main
+   one. */
+.columns { display: grid; gap: var(--space-4); }
+@media (min-width: 48rem) { .columns { grid-template-columns: 1fr 1fr; } }
+/* Identical styling for both columns. Neither is emphasised, and there is no
+   rule keyed to which value is larger. */
+.column { background: var(--c-surface-sunken); border-radius: var(--radius); padding: var(--space-3); }
+.columnTitle { margin: 0 0 var(--space-2); font-size: var(--text-sm); color: var(--c-ink-muted); }
+.figures { margin: 0; }
+/* Amber, like every other absence — a precaution, not a deficiency. */
+.yearAbsent { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); color: var(--c-caution); background: var(--c-caution-surface); padding: var(--space-2) var(--space-3); border-radius: var(--radius); }
+.yearAbsentTitle { font-weight: 600; font-size: var(--text-sm); }
+.yearAbsentBody { font-size: var(--text-sm); }

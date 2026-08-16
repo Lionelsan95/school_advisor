@@ -1,5 +1,6 @@
 import { apiGet } from "./client";
 import type {
+  CompareResponse,
   FactSheet,
   HistoryResponse,
   SearchParams,
@@ -23,4 +24,12 @@ export function getHistory(uai: string, signal?: AbortSignal): Promise<HistoryRe
     {},
     signal,
   );
+}
+
+export function compareEstablishments(
+  uais: string[],
+  signal?: AbortSignal,
+): Promise<CompareResponse> {
+  const query = uais.map((uai) => `uai=${encodeURIComponent(uai)}`).join("&");
+  return apiGet<CompareResponse>(`/establishments/compare?${query}`, {}, signal);
 }

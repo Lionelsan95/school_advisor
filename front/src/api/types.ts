@@ -216,3 +216,40 @@ export type HistorySeriesKey =
   | "valeur_ajoutee_acces"
   | "taux_mention"
   | "valeur_ajoutee_mention";
+
+/** One establishment's data for one year of a comparison (F4). */
+export interface ComparisonCell {
+  uai: string;
+  /** False when this establishment published no row for the year at all. */
+  annee_publiee: boolean;
+  resultat: ResultYear | null;
+  explication_absence: string | null;
+}
+
+export interface ComparisonRow {
+  annee: number;
+  cellules: ComparisonCell[];
+}
+
+export interface ComparisonIdentity {
+  uai: string;
+  nom: string;
+  type: string;
+  statut_public_prive: string | null;
+  commune: string | null;
+}
+
+/**
+ * Two establishments' records aligned by year.
+ *
+ * Note what this type cannot express: no difference, no winner, no aggregate.
+ * The backend aligns the rows precisely so the frontend never holds two values
+ * for a year as a pair awaiting an operation. Do not add a field here that
+ * would reconstitute one.
+ */
+export interface CompareResponse {
+  etablissements: ComparisonIdentity[];
+  lignes: ComparisonRow[];
+  explications: Record<string, Explanation>;
+  rappel_de_portee: string;
+}

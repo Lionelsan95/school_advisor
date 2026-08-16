@@ -15,6 +15,10 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from src.application.compare_establishments import (
+    CompareEstablishments,
+    InvalidComparisonError,
+)
 from src.application.errors import MissingSourceReferenceError
 from src.application.get_establishment_fact_sheet import GetEstablishmentFactSheet
 from src.application.get_establishment_history import GetEstablishmentHistory
@@ -34,6 +38,7 @@ from src.infrastructure.persistence.queries import (
     PostgresSourceReferenceReader,
 )
 from src.interfaces.api.schemas import (
+    CompareOut,
     FactSheetOut,
     HistoryOut,
     SearchResponseOut,
@@ -110,6 +115,16 @@ def get_history_use_case(
     )
 
 
+def get_compare_use_case(
+    connection: Annotated[psycopg.Connection, Depends(get_connection)],
+) -> CompareEstablishments:
+    return CompareEstablishments(
+        establishments=PostgresEstablishmentReader(connection),
+        indicators=PostgresIndicatorReader(connection),
+        sources=PostgresSourceReferenceReader(connection),
+    )
+
+
 def get_search_use_case(
     connection: Annotated[psycopg.Connection, Depends(get_connection)],
 ) -> SearchEstablishments:
@@ -161,6 +176,51 @@ def search_establishments(
             status_code=503, detail=_MISSING_SEARCH_SOURCE_MESSAGE
         ) from error
     return SearchResponseOut.of(results, criteria)
+
+
+@router.get("/compare", response_model=CompareOut)
+def compare_establishments(
+    request: Request,
+    use_case: Annotated[CompareEstablishments, Depends(get_compare_use_case)],
+    uai: Annotated[list[str], Query()],
+) -> CompareOut:
+    """Two establishments' published records, side by side (F4).
+
+    Declared before `/{uai}` deliberately: registered after it, "compare" would
+    be captured as a UAI and rejected as malformed.
+
+    The response contains no computed difference of any kind — see `CompareOut`
+    and the editorial charter §11.
+    """
+    _reject_sort_parameters(request)
+
+    try:
+        normalised = [parse_uai(value) for value in uai]
+    except InvalidUaiError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    try:
+        comparison = use_case.run(normalised)
+    except InvalidComparisonError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except MissingSourceReferenceError as error:
+        logger.error(
+            "Comparison withheld because source provenance is missing",
+            extra={
+                "dataset_id": error.dataset_id,
+                "uai": error.uai,
+                "year": error.year,
+            },
+        )
+        raise HTTPException(
+            status_code=503, detail=_MISSING_PROVENANCE_MESSAGE
+        ) from error
+    if comparison is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Au moins un des établissements demandés est inconnu.",
+        )
+    return CompareOut.of(comparison)
 
 
 @router.get("/{uai}", response_model=FactSheetOut)

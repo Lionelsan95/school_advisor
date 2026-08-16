@@ -12,3 +12,32 @@
 .cardTitle { margin: 0 0 var(--space-1); font-size: var(--text-base); }
 .cardMeta { margin: 0; font-size: var(--text-sm); color: var(--c-ink-muted); }
 .empty { background: var(--c-surface-sunken); border-radius: var(--radius); padding: var(--space-5); max-width: var(--measure); }
+.compareToggle {
+  margin-top: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  background: none;
+  border: 1px solid var(--c-rule);
+  border-radius: var(--radius);
+  color: var(--c-action);
+  cursor: pointer;
+}
+/* Pressed state marks a *selection*, not a preference — same neutral treatment
+   whichever establishment it is. */
+.compareToggle[aria-pressed="true"] {
+  background: var(--c-surface-sunken);
+  border-color: var(--c-action);
+}
+.compareBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  background: var(--c-surface-sunken);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}

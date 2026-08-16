@@ -4,8 +4,9 @@ import type { SearchHit, SearchParams } from "../api/types";
 import { ErrorState } from "../components/ErrorState";
 import { ScopeDisclaimer } from "../components/ScopeDisclaimer";
 import { SearchBar } from "../components/SearchBar";
-import { SEARCH } from "../content/copy";
+import { COMPARE, SEARCH } from "../content/copy";
 import { useApiResource } from "../hooks/useApiResource";
+import { useComparisonSelection } from "../hooks/useComparisonSelection";
 import styles from "./SearchResultsPage.module.css";
 
 /**
@@ -39,7 +40,15 @@ function toParams(search: URLSearchParams): SearchParams {
   return params;
 }
 
-function ResultCard({ hit }: { hit: SearchHit }) {
+function ResultCard({
+  hit,
+  selected,
+  onToggle,
+}: {
+  hit: SearchHit;
+  selected: boolean;
+  onToggle: (uai: string) => void;
+}) {
   return (
     <li className={styles.card}>
       <h3 className={styles.cardTitle}>
@@ -53,12 +62,21 @@ function ResultCard({ hit }: { hit: SearchHit }) {
         {[hit.type, hit.statut_public_prive].filter(Boolean).join(" · ")}
         {hit.filieres.length > 0 && ` · ${hit.filieres.join(", ")}`}
       </p>
+      <button
+        type="button"
+        className={styles.compareToggle}
+        aria-pressed={selected}
+        onClick={() => onToggle(hit.uai)}
+      >
+        {selected ? COMPARE.remove : COMPARE.add}
+      </button>
     </li>
   );
 }
 
 export function SearchResultsPage() {
   const [search, setSearch] = useSearchParams();
+  const comparison = useComparisonSelection();
   const params = toParams(search);
   const resource = useApiResource(
     (signal) => searchEstablishments(params, signal),
@@ -107,6 +125,28 @@ export function SearchResultsPage() {
             </ul>
           </div>
 
+          {comparison.uais.length > 0 && (
+            <div className={styles.compareBar}>
+              <span>{COMPARE.selectedCount(comparison.uais.length)}</span>
+              {comparison.isReady && (
+                <Link
+                  to={`/comparaison?${comparison.uais
+                    .map((uai) => `uai=${encodeURIComponent(uai)}`)
+                    .join("&")}`}
+                >
+                  {COMPARE.open}
+                </Link>
+              )}
+              <button
+                type="button"
+                className={styles.chip}
+                onClick={comparison.clear}
+              >
+                {COMPARE.clear}
+              </button>
+            </div>
+          )}
+
           <h2 className={styles.heading}>{SEARCH.heading}</h2>
           <p className={styles.count}>
             {resource.data.nombre_total === 1
@@ -126,7 +166,12 @@ export function SearchResultsPage() {
           ) : (
             <ul className={styles.results}>
               {resource.data.resultats.map((hit) => (
-                <ResultCard key={hit.uai} hit={hit} />
+                <ResultCard
+                  key={hit.uai}
+                  hit={hit}
+                  selected={comparison.isSelected(hit.uai)}
+                  onToggle={comparison.toggle}
+                />
               ))}
             </ul>
           )}

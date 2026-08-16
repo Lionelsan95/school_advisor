@@ -207,6 +207,27 @@ describe("no structural affordance for ranking", () => {
     expect(chart).not.toMatch(/\b(average|moyenne|mean|sum|reduce)\s*\(/i);
   });
 
+  it("the comparison table computes nothing across establishments", () => {
+    const table = src("components/ComparisonTable.tsx");
+    // Charter §11's explicit list: no gap, no count of criteria won, no
+    // average, no weighted score, no verdict, no recommendation. Assert the
+    // identifiers cannot even appear, so the forbidden operation is
+    // un-writable here rather than merely unwritten.
+    expect(table).not.toMatch(
+      /\b(ecart|difference|delta|winner|gagnant|score|verdict|ranking|classement)\b/i,
+    );
+    // No arithmetic between the two cells of a row.
+    expect(table).not.toMatch(/cellules\[0\][\s\S]{0,80}[-+*/][\s\S]{0,20}cellules\[1\]/);
+  });
+
+  it("every comparison figure goes through the shared Figure component", () => {
+    const table = src("components/ComparisonTable.tsx");
+    // Rendering a number any other way would bypass Figure's guarantees:
+    // required source, no tone prop, absence from static content.
+    expect(table).toMatch(/<Figure/);
+    expect(table).not.toMatch(/\.valeur\s*\}/);
+  });
+
   it("the scope disclaimer cannot be dismissed", () => {
     const disclaimer = src("components/ScopeDisclaimer.tsx");
     expect(disclaimer).not.toMatch(/dismiss|onClose|localStorage|useState/);

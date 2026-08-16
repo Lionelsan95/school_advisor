@@ -10,6 +10,7 @@ field it is actually asserting about.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -62,6 +63,25 @@ def make_indicator_result(
     fields: dict[str, Any] = dict(uai=uai, year=year, indicator_type=indicator_type)
     fields.update(overrides)
     return IndicatorResult(**fields)
+
+
+def make_indicator_results(
+    uai: str = "0750001A",
+    years: Iterable[int] = (2025,),
+    indicator_type: IndicatorType = IndicatorType.IVAC,
+    **overrides: Any,
+) -> list[IndicatorResult]:
+    """One `IndicatorResult` per year, same UAI and indicator type.
+
+    Built for tests that need a whole published series at once (API-8's
+    comparison year alignment, a history span) rather than one row at a time.
+    """
+    return [
+        make_indicator_result(
+            uai=uai, year=year, indicator_type=indicator_type, **overrides
+        )
+        for year in years
+    ]
 
 
 def make_source_reference(

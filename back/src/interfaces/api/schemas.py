@@ -23,6 +23,7 @@ from src.application.assistant_search import (
     ClarificationKind,
     UnavailableReason,
 )
+from src.application.compare_establishments import Comparison, ComparisonCell
 from src.application.get_establishment_fact_sheet import FactSheet, Figure, ResultRow
 from src.application.get_establishment_history import EstablishmentHistory
 from src.application.ports import SearchCriteria
@@ -203,6 +204,92 @@ _FACT_SHEET_EXPLANATIONS = (
     content.MENTION_RATE,
     content.ABSENT_VALUE,
 )
+
+
+class ComparisonCellOut(BaseModel):
+    """One establishment's data for one year of a comparison.
+
+    `annee_publiee: false` means this establishment has no published row for
+    the year at all — not that its figures were withheld. `explication_absence`
+    then points at the static block saying so, which is a different block from
+    the one used for a missing figure inside a published row.
+    """
+
+    uai: str
+    annee_publiee: bool
+    resultat: ResultOut | None
+    explication_absence: str | None
+
+    @classmethod
+    def of(cls, cell: ComparisonCell) -> ComparisonCellOut:
+        return cls(
+            uai=cell.uai,
+            annee_publiee=cell.has_published_year,
+            resultat=ResultOut.of(cell.row) if cell.row is not None else None,
+            explication_absence=(
+                None
+                if cell.has_published_year
+                else content.YEAR_NOT_PUBLISHED.content_id
+            ),
+        )
+
+
+class ComparisonRowOut(BaseModel):
+    annee: int
+    cellules: list[ComparisonCellOut]
+
+
+class ComparisonIdentityOut(BaseModel):
+    uai: str
+    nom: str
+    type: str
+    statut_public_prive: str | None
+    commune: str | None
+
+
+class CompareOut(BaseModel):
+    """Two establishments' published records, aligned by year.
+
+    Note what this response does NOT contain, by construction: no difference,
+    no winner, no count of criteria, no aggregate of any kind. The charter
+    (§11) forbids computing them, and the shape gives a client nothing to
+    compute them from — each cell is rendered independently, and the two
+    values for a year are never handed over as a pair.
+    """
+
+    etablissements: list[ComparisonIdentityOut]
+    lignes: list[ComparisonRowOut]
+    explications: dict[str, ExplanationOut]
+    rappel_de_portee: str = Field(default=content.SCOPE_DISCLAIMER)
+
+    @classmethod
+    def of(cls, comparison: Comparison) -> CompareOut:
+        return cls(
+            etablissements=[
+                ComparisonIdentityOut(
+                    uai=establishment.uai,
+                    nom=establishment.name,
+                    type=establishment.type.value,
+                    statut_public_prive=(
+                        establishment.sector.value if establishment.sector else None
+                    ),
+                    commune=establishment.canonical_site.city,
+                )
+                for establishment in comparison.establishments
+            ],
+            lignes=[
+                ComparisonRowOut(
+                    annee=row.year,
+                    cellules=[ComparisonCellOut.of(cell) for cell in row.cells],
+                )
+                for row in comparison.rows
+            ],
+            explications={
+                block.content_id: ExplanationOut.of(block)
+                for block in (*_FACT_SHEET_EXPLANATIONS, content.YEAR_NOT_PUBLISHED)
+            },
+            rappel_de_portee=content.SCOPE_DISCLAIMER,
+        )
 
 
 class MethodologyBreakOut(BaseModel):
