@@ -21,6 +21,7 @@ Design notes, all traceable to docs/05_Resultats_Spike_Technique.md:
 from __future__ import annotations
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0001"
@@ -39,8 +40,18 @@ def upgrade() -> None:
         sa.Column("type", sa.Text(), nullable=False),
         sa.Column("sector", sa.Text(), nullable=True),
         sa.Column("department_code", sa.Text(), nullable=True),
-        sa.Column("is_open", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        sa.Column("site_count", sa.Integer(), nullable=False, server_default=sa.text("1")),
+        sa.Column(
+            "is_open",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("true"),
+        ),
+        sa.Column(
+            "site_count",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("1"),
+        ),
         sa.Column("source_updated_at", sa.Text(), nullable=True),
     )
     op.create_index("ix_establishment_type", "establishment", ["type"])
@@ -94,7 +105,12 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("succeeded", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "succeeded",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
         sa.Column("establishments_loaded", sa.Integer(), nullable=True),
         sa.Column("indicators_loaded", sa.Integer(), nullable=True),
         sa.Column("indicators_seen", sa.Integer(), nullable=True),

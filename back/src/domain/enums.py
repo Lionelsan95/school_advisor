@@ -71,6 +71,74 @@ def sector_from_source(label: str | None) -> Sector | None:
     return _SECTOR_BY_SOURCE_LABEL.get(label.strip().lower())
 
 
+class Filiere(StrEnum):
+    """A teaching pathway an establishment offers.
+
+    Read from the directory's `voie_generale` / `voie_technologique` /
+    `voie_professionnelle` flags. This describes what the establishment
+    *offers*, not how it performs — it is a filter criterion, never a result.
+    """
+
+    GENERALE = "generale"
+    TECHNOLOGIQUE = "technologique"
+    PROFESSIONNELLE = "professionnelle"
+
+
+class Section(StrEnum):
+    """A specific section or provision hosted by the establishment.
+
+    Also descriptive: the presence of a section says what is on offer, and
+    carries no implication that one offering is preferable to another.
+    """
+
+    EUROPEENNE = "europeenne"
+    INTERNATIONALE = "internationale"
+    SPORT = "sport"
+    ARTS = "arts"
+    CINEMA = "cinema"
+    THEATRE = "theatre"
+    ULIS = "ulis"
+    SEGPA = "segpa"
+
+
+# Source flag field -> domain value. The directory publishes these as "0"/"1"
+# strings, except `ulis` which is a plain integer — see `flag_is_set`.
+FILIERE_BY_SOURCE_FIELD: dict[str, Filiere] = {
+    "voie_generale": Filiere.GENERALE,
+    "voie_technologique": Filiere.TECHNOLOGIQUE,
+    "voie_professionnelle": Filiere.PROFESSIONNELLE,
+}
+
+SECTION_BY_SOURCE_FIELD: dict[str, Section] = {
+    "section_europeenne": Section.EUROPEENNE,
+    "section_internationale": Section.INTERNATIONALE,
+    "section_sport": Section.SPORT,
+    "section_arts": Section.ARTS,
+    "section_cinema": Section.CINEMA,
+    "section_theatre": Section.THEATRE,
+    "ulis": Section.ULIS,
+    "segpa": Section.SEGPA,
+}
+
+
+def flag_is_set(value: object) -> bool:
+    """Whether a directory boolean-ish flag is set.
+
+    The directory is not type-consistent here: `voie_*`, `section_*` and
+    `segpa` arrive as the strings "0"/"1", while `ulis` arrives as the integer
+    0/1. Both spellings are accepted; anything else (null, "", an unexpected
+    label) reads as *not set* rather than raising, because an establishment
+    that does not declare a section is the normal case, not a source defect.
+    """
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value == 1
+    return str(value).strip() == "1"
+
+
 class IndicatorType(StrEnum):
     """Which published indicator series a result row belongs to.
 

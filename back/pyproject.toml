@@ -46,6 +46,14 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# These two modules carry French editorial text, which uses the typographic
+# minus sign U+2212 ("−3 points"). The neutrality charter (docs/14, §5) makes
+# that sign part of the displayed data, so it is deliberate here, not a
+# confusable-character slip. RUF001/RUF002 stay enabled everywhere else.
+"src/domain/explanatory_content.py" = ["RUF001", "RUF002"]
+"src/application/get_establishment_fact_sheet.py" = ["RUF001", "RUF002"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

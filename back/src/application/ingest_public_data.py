@@ -23,11 +23,15 @@ from datetime import UTC, datetime
 
 from src.application.errors import SuspiciousIngestionError
 from src.application.ports import (
+    CommuneRepository,
+    CommuneSource,
     DirectorySource,
     EstablishmentRepository,
     IndicatorRepository,
     IndicatorSource,
+    SourceReferenceRepository,
 )
+from src.domain.source_reference import SourceReference
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,7 @@ class QualityGates:
 
     min_establishments: int = 50_000
     min_indicators: int = 60_000
+    min_communes: int = 30_000
     # Observed 97.53% across all published years on 2026-08-15. Note this is
     # NOT the spike's 98.80%, which covered the latest year only: older years
     # reference establishments that have since closed and left the directory,
@@ -58,8 +63,10 @@ class IngestionReport:
     establishments_loaded: int = 0
     indicators_loaded: int = 0
     indicators_seen: int = 0
+    communes_loaded: int = 0
     unmatched_uais: list[str] = field(default_factory=list)
     match_rate: float = 0.0
+    source_references_recorded: int = 0
     succeeded: bool = False
     failure_reason: str | None = None
 
@@ -76,14 +83,20 @@ class IngestPublicData:
         self,
         directory_source: DirectorySource,
         indicator_source: IndicatorSource,
+        commune_source: CommuneSource,
         establishment_repository: EstablishmentRepository,
         indicator_repository: IndicatorRepository,
+        commune_repository: CommuneRepository,
+        source_reference_repository: SourceReferenceRepository,
         gates: QualityGates | None = None,
     ) -> None:
         self._directory = directory_source
         self._indicators = indicator_source
+        self._communes = commune_source
         self._establishments_repo = establishment_repository
         self._indicators_repo = indicator_repository
+        self._communes_repo = commune_repository
+        self._sources_repo = source_reference_repository
         self._gates = gates or QualityGates()
 
     def run(self) -> IngestionReport:
@@ -117,6 +130,14 @@ class IngestPublicData:
                 f"Refusing to append this run."
             )
 
+        communes = self._communes.fetch_communes()
+        if len(communes) < self._gates.min_communes:
+            raise SuspiciousIngestionError(
+                f"Commune source returned only {len(communes)} rows, below "
+                f"the minimum of {self._gates.min_communes}. "
+                f"Refusing to replace the current locality reference."
+            )
+
         # The join match rate is itself a health signal: the spike traced the
         # 1.2% of unmatched rows to a directory coverage gap in two
         # departements, so a sharp drop means the directory lost more ground.
@@ -145,18 +166,34 @@ class IngestPublicData:
                 unmatched[:20],
             )
 
+        self._sources_repo.snapshot()
         report.establishments_loaded = self._establishments_repo.replace_all(
             establishments
         )
         report.indicators_loaded = self._indicators_repo.append(indicators)
+        report.communes_loaded = self._communes_repo.replace_all(communes)
+
+        # F10 — record where each dataset came from and when we read it. Done
+        # after the data is in, and inside the same transaction, so a stored
+        # reference can never claim a synchronisation that did not land.
+        references: list[SourceReference] = [
+            *self._directory.source_references(),
+            *self._indicators.source_references(),
+            *self._communes.source_references(),
+        ]
+        for reference in references:
+            self._sources_repo.upsert(reference)
+        report.source_references_recorded = len(references)
+
         report.finished_at = datetime.now(UTC)
         report.succeeded = True
 
         logger.info(
-            "Ingestion complete in %.1fs — %d establishments, %d new indicator rows "
-            "(%d seen), match rate %.2f%%",
+            "Ingestion complete in %.1fs — %d establishments, %d communes, "
+            "%d new indicator rows (%d seen), match rate %.2f%%",
             report.duration_seconds,
             report.establishments_loaded,
+            report.communes_loaded,
             report.indicators_loaded,
             report.indicators_seen,
             report.match_rate * 100,

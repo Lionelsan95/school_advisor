@@ -12,10 +12,20 @@ same canonical site — for unchanged input.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
-from src.domain.enums import establishment_type_from_source, sector_from_source
+from src.domain.enums import (
+    FILIERE_BY_SOURCE_FIELD,
+    SECTION_BY_SOURCE_FIELD,
+    Filiere,
+    Section,
+    establishment_type_from_source,
+    flag_is_set,
+    sector_from_source,
+)
 from src.domain.establishment import Establishment, Site
+from src.domain.source_reference import SourceReference
 from src.domain.uai import InvalidUaiError, parse_uai
 
 from .ods_client import DATASET_DIRECTORY, OdsClient
@@ -38,6 +48,11 @@ DIRECTORY_FIELDS = [
     "longitude",
     "etat",
     "date_maj_ligne",
+    # Offer descriptors (Phase 2, ticket API-2). The directory types these
+    # inconsistently — `voie_*`, `section_*` and `segpa` are the strings
+    # "0"/"1" while `ulis` is an integer — which `flag_is_set` absorbs.
+    *FILIERE_BY_SOURCE_FIELD,
+    *SECTION_BY_SOURCE_FIELD,
 ]
 
 _OPEN_STATE = "OUVERT"
@@ -50,6 +65,31 @@ def _as_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _filieres(rows: list[dict[str, Any]]) -> tuple[Filiere, ...]:
+    """Pathways offered anywhere across the establishment's sites.
+
+    Unioned rather than read from the canonical site only: a multi-site
+    establishment can host the professional pathway at an annexe, and dropping
+    it would understate what the establishment offers.
+    """
+    found = {
+        filiere
+        for field, filiere in FILIERE_BY_SOURCE_FIELD.items()
+        if any(flag_is_set(row.get(field)) for row in rows)
+    }
+    # Enum declaration order, so the same input always serializes identically.
+    return tuple(filiere for filiere in Filiere if filiere in found)
+
+
+def _sections(rows: list[dict[str, Any]]) -> tuple[Section, ...]:
+    found = {
+        section
+        for field, section in SECTION_BY_SOURCE_FIELD.items()
+        if any(flag_is_set(row.get(field)) for row in rows)
+    }
+    return tuple(section for section in Section if section in found)
 
 
 def _sort_key(row: dict[str, Any]) -> tuple[str, str, str]:
@@ -75,6 +115,16 @@ class DirectoryAdapter:
         self._client.assert_schema(DATASET_DIRECTORY, DIRECTORY_FIELDS)
         rows = self._client.export_all(DATASET_DIRECTORY, DIRECTORY_FIELDS)
         return self.build_establishments(rows)
+
+    def source_references(self) -> list[SourceReference]:
+        return [
+            SourceReference(
+                dataset_id=DATASET_DIRECTORY,
+                url=self._client.dataset_page_url(DATASET_DIRECTORY),
+                last_synchronised_at=datetime.now(UTC),
+                source_published_at=self._client.data_published_at(DATASET_DIRECTORY),
+            )
+        ]
 
     @staticmethod
     def build_establishments(rows: list[dict[str, Any]]) -> list[Establishment]:
@@ -125,6 +175,8 @@ class DirectoryAdapter:
                     department_code=primary.get("code_departement"),
                     is_open=primary.get("etat") == _OPEN_STATE,
                     sites=sites,
+                    filieres=_filieres(ordered),
+                    sections=_sections(ordered),
                     source_updated_at=primary.get("date_maj_ligne"),
                 )
             )

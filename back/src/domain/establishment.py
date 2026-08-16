@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .enums import EstablishmentType, Sector
+from .enums import EstablishmentType, Filiere, Section, Sector
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +62,10 @@ class Establishment:
     department_code: str | None
     is_open: bool
     sites: tuple[Site, ...]
+    # What the establishment offers. Descriptive only — these are search
+    # criteria and fact-sheet content, never inputs to any ordering.
+    filieres: tuple[Filiere, ...] = ()
+    sections: tuple[Section, ...] = ()
     source_updated_at: str | None = None
 
     def __post_init__(self) -> None:

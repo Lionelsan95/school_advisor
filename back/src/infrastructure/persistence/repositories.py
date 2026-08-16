@@ -16,8 +16,10 @@ import logging
 import psycopg
 from psycopg import sql
 
+from src.domain.commune import Commune
 from src.domain.establishment import Establishment
 from src.domain.indicator_result import IndicatorResult
+from src.domain.source_reference import SourceReference
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,7 @@ class PostgresEstablishmentRepository:
             with cursor.copy(
                 "COPY establishment "
                 "(uai, name, type, sector, department_code, is_open, "
-                "site_count, source_updated_at) FROM STDIN"
+                "site_count, filieres, sections, source_updated_at) FROM STDIN"
             ) as copy:
                 for establishment in establishments:
                     copy.write_row(
@@ -82,6 +84,8 @@ class PostgresEstablishmentRepository:
                             establishment.department_code,
                             establishment.is_open,
                             len(establishment.sites),
+                            [f.value for f in establishment.filieres],
+                            [s.value for s in establishment.sections],
                             establishment.source_updated_at,
                         )
                     )
@@ -126,12 +130,28 @@ class PostgresEstablishmentRepository:
                         f"No snapshot table {table}_previous — nothing to restore."
                     )
             cursor.execute("TRUNCATE establishment, site")
-            for table in SNAPSHOT_TABLES:
-                cursor.execute(
-                    sql.SQL("INSERT INTO {} SELECT * FROM {}").format(
-                        sql.Identifier(table), sql.Identifier(f"{table}_previous")
-                    )
+            cursor.execute(
+                """
+                INSERT INTO establishment (
+                    uai, name, type, sector, department_code, is_open,
+                    site_count, source_updated_at, filieres, sections
                 )
+                SELECT uai, name, type, sector, department_code, is_open,
+                       site_count, source_updated_at, filieres, sections
+                FROM establishment_previous
+                """
+            )
+            cursor.execute(
+                """
+                INSERT INTO site (
+                    uai, sequence, name, address, postal_code, city, city_code,
+                    latitude, longitude
+                )
+                SELECT uai, sequence, name, address, postal_code, city, city_code,
+                       latitude, longitude
+                FROM site_previous
+                """
+            )
         restored = self.count()
         logger.warning(
             "Rolled back to the previous snapshot (%d establishments)", restored
@@ -220,4 +240,123 @@ class PostgresIndicatorRepository:
         with self._connection.cursor() as cursor:
             cursor.execute("SELECT count(*) FROM indicator_result")
             row = cursor.fetchone()
+        return int(row[0]) if row else 0
+
+
+class PostgresCommuneRepository:
+    """Atomic snapshot storage for the official commune reference."""
+
+    def __init__(self, connection: psycopg.Connection) -> None:
+        self._connection = connection
+
+    def replace_all(self, communes: list[Commune]) -> int:
+        with self._connection.transaction(), self._connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS commune_previous")
+            cursor.execute("CREATE TABLE commune_previous AS SELECT * FROM commune")
+            cursor.execute("TRUNCATE commune")
+            with cursor.copy(
+                "COPY commune (code, name, postal_codes, department_code, "
+                "latitude, longitude) FROM STDIN"
+            ) as copy:
+                for commune in communes:
+                    copy.write_row(
+                        (
+                            commune.code,
+                            commune.name,
+                            list(commune.postal_codes),
+                            commune.department_code,
+                            commune.latitude,
+                            commune.longitude,
+                        )
+                    )
+        logger.info("Replaced commune snapshot with %d rows", len(communes))
+        return len(communes)
+
+    def restore_previous(self) -> int:
+        with self._connection.transaction(), self._connection.cursor() as cursor:
+            cursor.execute("SELECT to_regclass('public.commune_previous')")
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError(
+                    "No snapshot table commune_previous — nothing to restore."
+                )
+            cursor.execute("TRUNCATE commune")
+            cursor.execute(
+                "INSERT INTO commune "
+                "(code, name, postal_codes, department_code, latitude, longitude) "
+                "SELECT code, name, postal_codes, department_code, latitude, "
+                "longitude FROM commune_previous"
+            )
+        restored = self.count()
+        logger.warning(
+            "Rolled back to the previous commune snapshot (%d rows)", restored
+        )
+        return restored
+
+    def count(self) -> int:
+        with self._connection.cursor() as cursor:
+            cursor.execute("SELECT count(*) FROM commune")
+            row = cursor.fetchone()
             return int(row[0]) if row else 0
+
+
+class PostgresSourceReferenceRepository:
+    """Implements `SourceReferenceRepository`.
+
+    Unlike the two above, this one *does* update in place: a source reference
+    describes where a dataset lives and when we last read it, so the current
+    value is the only useful one. Nothing historical is lost — the per-run
+    history lives in `ingestion_run`.
+    """
+
+    def __init__(self, connection: psycopg.Connection) -> None:
+        self._connection = connection
+
+    def snapshot(self) -> None:
+        with self._connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS source_reference_previous")
+            cursor.execute(
+                "CREATE TABLE source_reference_previous AS "
+                "SELECT * FROM source_reference"
+            )
+
+    def restore_previous(self) -> int:
+        with self._connection.transaction(), self._connection.cursor() as cursor:
+            cursor.execute("SELECT to_regclass('public.source_reference_previous')")
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError(
+                    "No snapshot table source_reference_previous — nothing to restore."
+                )
+            cursor.execute("TRUNCATE source_reference")
+            cursor.execute(
+                "INSERT INTO source_reference "
+                "(dataset_id, url, last_synchronised_at, source_published_at) "
+                "SELECT dataset_id, url, last_synchronised_at, source_published_at "
+                "FROM source_reference_previous"
+            )
+            cursor.execute("SELECT count(*) FROM source_reference")
+            count_row = cursor.fetchone()
+        restored = int(count_row[0]) if count_row else 0
+        logger.warning("Rolled back to %d previous source references", restored)
+        return restored
+
+    def upsert(self, reference: SourceReference) -> None:
+        with self._connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO source_reference
+                    (dataset_id, url, last_synchronised_at, source_published_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (dataset_id) DO UPDATE SET
+                    url = EXCLUDED.url,
+                    last_synchronised_at = EXCLUDED.last_synchronised_at,
+                    source_published_at = EXCLUDED.source_published_at
+                """,
+                (
+                    reference.dataset_id,
+                    reference.url,
+                    reference.last_synchronised_at,
+                    reference.source_published_at,
+                ),
+            )

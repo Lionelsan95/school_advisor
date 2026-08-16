@@ -34,3 +34,7 @@ class SourceSchemaMismatchError(IngestionError):
             f"are absent. The dataset now exposes {len(present)} fields. "
             f"Ingestion aborted — no partial import was performed."
         )
+
+
+class SourceDataIntegrityError(IngestionError):
+    """The upstream shape exists, but its values cannot be safely published."""

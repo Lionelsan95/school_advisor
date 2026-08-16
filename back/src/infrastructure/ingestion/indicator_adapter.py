@@ -15,10 +15,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from src.domain.enums import IndicatorType, sector_from_source
 from src.domain.indicator_result import IndicatorResult
+from src.domain.source_reference import SourceReference
 from src.domain.uai import InvalidUaiError, parse_uai
 
 from .ods_client import (
@@ -162,6 +164,17 @@ class IndicatorAdapter:
             rows = self._client.export_all(spec.dataset_id, spec.fields)
             results.extend(self.build_results(spec, rows))
         return results
+
+    def source_references(self) -> list[SourceReference]:
+        return [
+            SourceReference(
+                dataset_id=spec.dataset_id,
+                url=self._client.dataset_page_url(spec.dataset_id),
+                last_synchronised_at=datetime.now(UTC),
+                source_published_at=self._client.data_published_at(spec.dataset_id),
+            )
+            for spec in self._specs
+        ]
 
     @staticmethod
     def build_results(

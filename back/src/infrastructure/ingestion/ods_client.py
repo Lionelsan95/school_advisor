@@ -15,9 +15,17 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import date, datetime
 from typing import Any
 
 import httpx
+
+from src.domain.dataset_ids import (
+    DATASET_DIRECTORY,
+    DATASET_IVAC,
+    DATASET_IVAL_GT,
+    DATASET_IVAL_PRO,
+)
 
 from .errors import SourceSchemaMismatchError, SourceUnavailableError
 
@@ -25,10 +33,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://data.education.gouv.fr/api/explore/v2.1"
 
-DATASET_DIRECTORY = "fr-en-annuaire-education"
-DATASET_IVAC = "fr-en-indicateurs-valeur-ajoutee-colleges"
-DATASET_IVAL_GT = "fr-en-indicateurs-de-resultat-des-lycees-gt_v2"
-DATASET_IVAL_PRO = "fr-en-indicateurs-de-resultat-des-lycees-pro_v2"
+# Re-exported from the domain so both the fetching code here and the
+# provenance mapping in the application layer name the same strings. Do not
+# redefine them locally — see src/domain/dataset_ids.py.
+__all__ = [
+    "DATASET_DIRECTORY",
+    "DATASET_IVAC",
+    "DATASET_IVAL_GT",
+    "DATASET_IVAL_PRO",
+    "OdsClient",
+]
 
 
 class OdsClient:
@@ -44,6 +58,7 @@ class OdsClient:
         client: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
+        self._catalog_cache: dict[str, dict[str, Any]] = {}
         self._timeout = timeout
         self._max_retries = max_retries
         self._backoff_seconds = backoff_seconds
@@ -86,10 +101,60 @@ class OdsClient:
             f"{url} failed after {self._max_retries} attempts: {last_error}"
         )
 
-    def field_names(self, dataset_id: str) -> list[str]:
+    def _catalog_entry(self, dataset_id: str) -> dict[str, Any]:
+        """Fetch a dataset's catalogue entry, once per client instance.
+
+        Both the schema check and the provenance lookup need this document, so
+        without the cache a run made two identical requests per dataset — eight
+        avoidable round trips against a public API this client already backs
+        off from on 429s. A client lives for one ingestion run, so the cache
+        cannot serve stale metadata across runs.
+        """
+        cached = self._catalog_cache.get(dataset_id)
+        if cached is not None:
+            return cached
         response = self._get(f"{self._base_url}/catalog/datasets/{dataset_id}")
-        payload = response.json()
-        return [field["name"] for field in payload.get("fields", [])]
+        payload: dict[str, Any] = response.json()
+        self._catalog_cache[dataset_id] = payload
+        return payload
+
+    def field_names(self, dataset_id: str) -> list[str]:
+        return [
+            field["name"] for field in self._catalog_entry(dataset_id).get("fields", [])
+        ]
+
+    def dataset_page_url(self, dataset_id: str) -> str:
+        """The human-readable portal page for a dataset (F10 source link).
+
+        Derived from the configured API base URL so a different deployment or
+        a test double does not silently link back to the production portal.
+        """
+        portal = self._base_url.split("/api/explore/")[0]
+        return f"{portal}/explore/dataset/{dataset_id}/information/"
+
+    def data_published_at(self, dataset_id: str) -> date | None:
+        """When the source last *processed the data* for this dataset.
+
+        `data_processed` is preferred over `modified`: the catalogue's own
+        metadata says `modified` also moves on a pure metadata edit, which
+        would make us report a new publication date for a dataset whose
+        figures did not change. Returns None rather than guessing when the
+        field is absent or unparseable.
+        """
+        metas = self._catalog_entry(dataset_id).get("metas", {}).get("default", {})
+        raw = metas.get("data_processed")
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(str(raw)).date()
+        except ValueError:
+            logger.warning(
+                "Unparseable data_processed for %s: %r — leaving the publication "
+                "date unset rather than inventing one",
+                dataset_id,
+                raw,
+            )
+            return None
 
     def assert_schema(self, dataset_id: str, expected_fields: list[str]) -> None:
         """Abort ingestion if the dataset no longer exposes what we read.

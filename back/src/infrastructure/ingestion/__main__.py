@@ -19,7 +19,9 @@ import sys
 import psycopg
 
 from src.infrastructure.persistence.repositories import (
+    PostgresCommuneRepository,
     PostgresEstablishmentRepository,
+    PostgresSourceReferenceRepository,
 )
 from src.infrastructure.settings import get_settings
 
@@ -47,9 +49,20 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if args.rollback:
-        with psycopg.connect(settings.database_url) as connection:
+        with (
+            psycopg.connect(settings.database_url) as connection,
+            connection.transaction(),
+        ):
             restored = PostgresEstablishmentRepository(connection).restore_previous()
-        print(f"Rolled back to the previous snapshot: {restored} establishments.")
+            communes_restored = PostgresCommuneRepository(connection).restore_previous()
+            sources_restored = PostgresSourceReferenceRepository(
+                connection
+            ).restore_previous()
+        print(
+            "Rolled back to the previous snapshot: "
+            f"{restored} establishments and {communes_restored} communes. "
+            f"Restored {sources_restored} source references."
+        )
         return 0
 
     try:
@@ -62,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"Ingestion succeeded in {report.duration_seconds:.1f}s — "
         f"{report.establishments_loaded} establishments, "
+        f"{report.communes_loaded} communes, "
         f"{report.indicators_loaded} new indicator rows "
         f"({report.indicators_seen} seen), "
         f"match rate {report.match_rate:.2%}, "

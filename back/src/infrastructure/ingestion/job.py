@@ -17,12 +17,16 @@ from apscheduler.triggers.cron import CronTrigger
 
 from src.application.ingest_public_data import IngestionReport, IngestPublicData
 from src.infrastructure.persistence.repositories import (
+    PostgresCommuneRepository,
     PostgresEstablishmentRepository,
     PostgresIndicatorRepository,
+    PostgresSourceReferenceRepository,
 )
 from src.infrastructure.settings import Settings, get_settings
 
+from .commune_adapter import CommuneAdapter
 from .directory_adapter import DirectoryAdapter
+from .geo_api_client import GeoApiClient
 from .indicator_adapter import IndicatorAdapter
 from .ods_client import OdsClient
 
@@ -37,14 +41,20 @@ def run_ingestion_once(settings: Settings | None = None) -> IngestionReport:
     """
     settings = settings or get_settings()
     client = OdsClient(base_url=settings.ods_base_url)
+    geo_client = GeoApiClient(base_url=settings.geo_api_base_url)
     started_at = datetime.now(UTC)
     try:
         with psycopg.connect(settings.database_url) as connection:
             use_case = IngestPublicData(
                 directory_source=DirectoryAdapter(client),
                 indicator_source=IndicatorAdapter(client),
+                commune_source=CommuneAdapter(geo_client),
                 establishment_repository=PostgresEstablishmentRepository(connection),
                 indicator_repository=PostgresIndicatorRepository(connection),
+                commune_repository=PostgresCommuneRepository(connection),
+                source_reference_repository=PostgresSourceReferenceRepository(
+                    connection
+                ),
             )
             try:
                 # One transaction around BOTH writes. The repositories open
@@ -56,6 +66,7 @@ def run_ingestion_once(settings: Settings | None = None) -> IngestionReport:
                 # are being shown.
                 with connection.transaction():
                     report = use_case.run()
+                    _record_run(connection, report)
             except Exception as error:
                 # The use case already logged CRITICAL. Record the attempt on a
                 # fresh connection, because the failing one may be in an
@@ -69,10 +80,10 @@ def run_ingestion_once(settings: Settings | None = None) -> IngestionReport:
                 with psycopg.connect(settings.database_url) as audit_connection:
                     _record_run(audit_connection, failed)
                 raise
-            _record_run(connection, report)
             return report
     finally:
         client.close()
+        geo_client.close()
 
 
 def _record_run(connection: psycopg.Connection, report: IngestionReport) -> None:
@@ -81,9 +92,9 @@ def _record_run(connection: psycopg.Connection, report: IngestionReport) -> None
             """
             INSERT INTO ingestion_run (
                 started_at, finished_at, succeeded, establishments_loaded,
-                indicators_loaded, indicators_seen, match_rate,
+                indicators_loaded, indicators_seen, communes_loaded, match_rate,
                 unmatched_uai_count, failure_reason
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 report.started_at,
@@ -92,12 +103,12 @@ def _record_run(connection: psycopg.Connection, report: IngestionReport) -> None
                 report.establishments_loaded,
                 report.indicators_loaded,
                 report.indicators_seen,
+                report.communes_loaded,
                 report.match_rate,
                 len(report.unmatched_uais),
                 report.failure_reason,
             ),
         )
-    connection.commit()
 
 
 def start_scheduler(settings: Settings | None = None) -> BackgroundScheduler | None:
