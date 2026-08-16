@@ -21,21 +21,34 @@ This document is generic and stable — it should rarely need to change.*
 
 ## 2. Data integrity
 
-- [ ] No indicator value is estimated, backfilled, or guessed when the source
-      marks it as non-diffused (below threshold).
+- [ ] No absent indicator value is estimated, backfilled, or guessed, and no
+      row-specific cause is inferred when the source publishes none.
 - [ ] Every displayed figure traces to a `SourceReference` — no orphan numbers.
 - [ ] Historical data is never overwritten; new ingestion runs add rows, they
       don't mutate past years.
+- [ ] If assistant caching is touched, only validated structured
+      interpretations are cached — never factual results or provider prose.
+      Factual reads run per request, and keys account for interpreter,
+      prompt/schema, source and editorial versions.
 
 ## 3. Testing
 
 - [ ] Unit tests for domain/application logic exist and pass, independent of
       database or HTTP framework.
 - [ ] Integration tests exist for any new endpoint, covering at least one
-      normal case and one edge case (missing data, below threshold, empty
-      result set).
+      normal case and one edge case (missing data without a published cause,
+      empty result set, or missing provenance).
 - [ ] Tests run inside `docker compose` or an equivalent reproducible
       environment, not only "on my machine."
+- [ ] Assistant-cache changes test TTL/LRU behavior, normalized hits, version
+      misses, non-caching of failures/invalid values, deterministic bypasses
+      and factual re-execution on cache hits.
+- [ ] When a ticket requires CI, a workflow file alone is not completion
+      evidence: at least one successful hosted run has been observed.
+      Integration CI uses an explicitly disposable `_test` database.
+- [ ] Provider/source contract tests use mocks or fixtures in normal CI unless
+      a separate live smoke was explicitly authorized; normal CI requires no
+      live provider secret.
 
 ## 4. Documentation sync
 

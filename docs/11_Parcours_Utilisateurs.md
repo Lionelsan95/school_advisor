@@ -1,5 +1,11 @@
 # Parcours utilisateurs
 
+> **Statut d'implémentation : cible MVP.** Les fiches REST, la recherche
+> déterministe par coordonnées/type/secteur/filière, UAI/nom/commune/code
+> postal et la résolution officielle de communes sont disponibles.
+> L'autocomplétion, le frontend et l'interprétation hybride avec ou sans LLM
+> restent à livrer.
+
 ## 1. Parcours principal — Explorer une zone
 
 ### Intention
@@ -81,23 +87,19 @@ Message :
 
 La page propose la méthodologie et la source, sans suggérer de conclusion.
 
-## 7. Valeur sous le seuil de diffusion
+## 7. Valeur non disponible
 
-> ⚠️ **Révision requise — constat du spike du 15/08/2026.**
-> Ce scénario suppose que toute valeur absente l'est à cause du seuil
-> d'effectif. Les données montrent que ce n'est pas le cas (voir
-> `14_Charte_Neutralite_Editoriale.md`, § 6, et
-> `05_Resultats_Spike_Technique.md`, section 3). Un second scénario est à
-> écrire pour l'absence sans motif publié. Validation humaine requise —
-> ticket API-4. *Texte existant conservé intact ci-dessous.*
+La carte d'indicateur affiche « Valeur non disponible » au lieu d'un nombre.
+Elle renvoie vers le bloc éditorial versionné `valeur_non_disponible`.
 
-La carte d’indicateur affiche « Valeur non diffusée » au lieu d’un nombre.
+Le détail explique que la valeur n'est pas publiée, que cette absence n'est
+pas un résultat et que la source ouverte ne précise pas le motif applicable à
+cet établissement pour cette année. Il peut énumérer les situations prévues
+par la documentation DEPP comme des possibilités, sans en attribuer aucune à
+la ligne affichée.
 
-Le détail explique :
-
-> La DEPP ne publie pas cette valeur lorsque l’effectif est inférieur au seuil prévu pour préserver la fiabilité statistique. Cette absence ne permet de tirer aucune conclusion sur l’établissement.
-
-Le produit ne tente aucune estimation.
+Le produit ne tente aucune estimation, aucun report d'une autre année et
+aucune substitution par zéro.
 
 ## 8. Historique avec rupture méthodologique
 
@@ -146,7 +148,7 @@ Le PDF conserve obligatoirement :
 - identité de l’établissement ;
 - valeurs et années ;
 - définitions essentielles ;
-- données non diffusées et leurs motifs ;
+- valeurs non disponibles et l'explication de leurs limites ;
 - rappel de portée ;
 - sources ;
 - date de génération.

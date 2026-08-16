@@ -16,8 +16,9 @@ plain, sourced, contextualized language.
   flag it instead.
 - Explanatory content for indicators (what a "valeur ajoutée" means, why a data
   point is missing, the scope disclaimer) must be **static, versioned content**,
-  never generated freely by the LLM at request time. See `back/src/domain/`
-  for where this content should live once implemented.
+  never generated freely by the LLM at request time. The approved indicator
+  content lives in `back/src/domain/explanatory_content.py`; the separately
+  approved assistant strings live in `back/src/domain/assistant_content.py`.
 
 If unsure whether a feature or a piece of copy respects this principle, default
 to the simpler, more neutral option — or ask before implementing.
@@ -70,16 +71,29 @@ Full context lives in `docs/`:
 ```bash
 # Local environment
 cp .env.example .env
-docker compose up --build
+# `front/` is empty until Phase 4, so start only implemented services.
+docker compose up -d db backend
 
 # Backend — run from back/ (that is where pyproject.toml, tests/ and the venv
 # live; from the repo root these pick up no config and sweep in docs/ etc.)
 cd back
 pytest tests/unit         # fast, no database and no network
-pytest                    # adds tests/integration — needs DATABASE_URL set,
-                          # otherwise those tests skip
-ruff check src tests      # lint
-ruff format src tests     # format
+
+# Integration tests TRUNCATE their tables, so they refuse to run against a
+# database that is not explicitly disposable: they need TEST_DATABASE_URL, or
+# a DATABASE_URL whose database name ends in `_test`. Anything else skips with
+# an explanatory message. (This guard exists because they once wiped a fully
+# ingested development database.) One-time setup:
+#   docker exec schools_db psql -U schools_app -d postgres \
+#     -c "CREATE DATABASE schools_db_test;"
+#   docker exec schools_db psql -U schools_app -d schools_db_test \
+#     -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+#   DATABASE_URL=<...schools_db_test> alembic upgrade head
+# Then, to run everything:
+DATABASE_URL="postgresql://schools_app:local_dev_password@localhost:5432/schools_db_test" \
+TEST_DATABASE_URL="postgresql://schools_app:local_dev_password@localhost:5432/schools_db_test" pytest
+ruff check .              # lint
+ruff format --check .     # formatting validation (does not rewrite files)
 mypy src                  # type check
 
 # Trigger an ingestion run by hand (the scheduler only runs it when
@@ -90,24 +104,36 @@ python -m src.infrastructure.ingestion --rollback   # undo the last load
 # Apply migrations (also needs DATABASE_URL; it has no fallback by design)
 alembic upgrade head
 
-# Frontend
-npm run dev              # Vite dev server
-npm run build              # production build
-npm run lint               # eslint
+# Frontend commands become available when Phase 4 creates front/package.json.
 ```
 
+`.github/workflows/backend.yml` runs the same backend gates from `back/` on a
+disposable PostGIS database: `python -m alembic upgrade head`, full
+`python -m pytest -ra`, `python -m ruff check .`,
+`python -m ruff format --check .`, and `python -m mypy src`. The local commands
+above remain the reproducible equivalents. Workflow presence alone is not
+evidence of a successful hosted run: do not close AGENT-3 or Phase 3 until a
+green GitHub Actions run has actually been observed. Normal CI has no Anthropic
+key and must not call a live provider or public source.
+
 - Backend: http://localhost:8000 (health check at `/health`)
-- Frontend: http://localhost:5173
+- Frontend: not implemented yet (Phase 4 target: http://localhost:5173)
 - Database: localhost:5432 (postgis/postgis image)
 
 ## Boundaries
 
-- **Static explanatory content (F3/F6/F7)** — once implemented (see ticket
-  API-3 in `docs/07_Backlog_Epics_Tickets.md`), this content is off-limits for
+- **Static explanatory content (F3/F6/F7)** — implemented in
+  `back/src/domain/explanatory_content.py` and explicitly human-approved on
+  2026-08-15. This content is off-limits for
   automated/free-form rewriting by any agent or session. It can be extended or
   corrected, but any change must be explicitly reviewed by a human before
   commit — never auto-committed as part of a routine code change. See the
   dedicated workflow below.
+- **Static assistant content** — the six strings in
+  `back/src/domain/assistant_content.py`, version 1, were explicitly approved
+  on 2026-08-15. Provider output is never displayed. Any text change requires
+  explicit human approval and an `ASSISTANT_CONTENT_VERSION` increment before
+  the normal neutrality/content synchronization chain.
 - **`docs/04_Journal_Decisions.md`** — append-only in spirit. Add new entries;
   don't rewrite or delete past ones without an explicit instruction to do so.
 - **`docs/05_Resultats_Spike_Technique.md`** — once filled in from the
@@ -180,6 +206,89 @@ reading the code.)*
   indicators fail after establishments were replaced, the establishment
   snapshot rolls back too — the database and the `ingestion_run` audit row can
   never disagree about whether a run succeeded.
+
+*(Added during Phase 2, 2026-08-15.)*
+
+- **The DEPP documents three reasons a value-added figure can be missing, and
+  the open-data export erases all of them.** Too few candidates, pupil
+  information retrieved for under 75% of candidates, or Mayotte (expected
+  rates not computed). The DEPP codes these `ND`/`NS`; the published API
+  returns a plain `null` in every case — verified on rows with 143 and 655
+  candidates. Consequence: the reason is knowable in general, unknowable per
+  row. F6 content names the possibilities and attributes none of them.
+- **The `<20 GT / <10 PRO` threshold in the glossary is the *raw rate*
+  threshold, not the value-added one.** Value-added needs ≥40 GT and ≥20 PRO
+  from session 2024 (≥40 for the collège général series, up from 30).
+  Consequence: any code or copy citing 20/10 for value-added is wrong. Both
+  figures now live in `docs/03_Glossaire_Metier.md`, corrected.
+- **The catalog metadata carries two dates and only one means "the data
+  changed".** `modified` also moves on a metadata-only edit; `data_processed`
+  tracks the data itself. Consequence: `source_published_at` reads
+  `data_processed`, or stays null — never `modified`.
+- **The directory publishes `voie_*`/`section_*`/`segpa` as the strings
+  `"0"`/`"1"` but `ulis` as an integer.** Consequence: `flag_is_set` accepts
+  both spellings; do not compare these fields to `"1"` directly.
+- **The directory has no `effectif` field at all**, and publishes no academic
+  or national average per establishment. Consequence: those were removed from
+  the API contract. The expected rate is recoverable exactly as
+  `observed − value_added` and is exposed flagged `calcule: true`.
+- **The read API pool is read-only and REPEATABLE READ** (`main.py`), and the
+  router borrows one connection per request. Consequence: a fact sheet's three
+  queries cannot straddle an ingestion commit, and any accidental write from a
+  request path fails loudly instead of succeeding.
+- **`search()` joins the canonical site with `LATERAL ... ORDER BY sequence
+  LIMIT 1`, not `sequence = 0`.** The domain defines canonical as the lowest
+  sequence. Consequence: a gap in site numbering cannot silently drop an
+  establishment from every search result while leaving it reachable by UAI.
+
+*(Added during the Phase 3 deterministic-search prerequisite, 2026-08-15.)*
+
+- **Locality lookup never calls a geocoder during a user request.** The
+  official Geo API commune reference is fetched and fully validated during
+  ingestion, then stored locally. Consequence: an unavailable or malformed
+  Geo API cannot make request latency or output nondeterministic.
+- **Name, commune and postcode matching uses the canonical site only.**
+  Matching an annexe while displaying the main site's different commune would
+  make a result contradict its own filter. Consequence: other sites remain on
+  the fact sheet but do not enter the one-line search match.
+- **Text ordering is factual match tier, then distance, then stable identity
+  tie-breakers.** `pg_trgm`/`unaccent` provide accent-insensitive lookup in
+  PostgreSQL; no result indicator enters the query or index.
+- **Rollback includes commune and source-reference snapshots.** Generated
+  search columns are excluded from explicit restore inserts, and the success
+  audit is committed in the same transaction as the data and provenance.
+
+*(Added during the bounded Phase 3 assistant slice, 2026-08-15.)*
+
+- **Simple UAI, five-digit postcode and identity-name assistant queries bypass
+  the provider.** Complex and subjective queries alone enter the optional
+  interpretation adapter; a missing key or provider failure cannot disable the
+  structured GET endpoints or those fast paths.
+- **No provider text is user-facing.** The adapter may return only one closed
+  `InterpretedSearch` tool payload. Every populated search filter requires
+  explicit lexical support in the original request; `location_mode` and
+  `needs_location=true` additionally require supported exact-location or
+  proximity markers, before any factual search.
+- **Exact commune and proximity are distinct.** Exact mode filters on the
+  official commune code. Proximity uses only the published official centre and
+  asks one static clarification when the centre is absent; coordinates are
+  never guessed.
+- **The assistant cache stores validated interpretations, never facts.** Simple
+  deterministic paths do not inspect it or compute a source-version token. A
+  complex-query key is an opaque SHA-256 over the normalized request, the
+  interpreter identity and source/editorial versions. Anthropic identity
+  includes provider, model, `PROMPT_VERSION` and a digest of the closed tool
+  schema: increment `PROMPT_VERSION` for prompt changes; schema changes alter
+  the digest automatically. Source identity sorts every dataset ID, URL,
+  synchronization timestamp and publication date. Editorial identity includes
+  the assistant version, every explanatory-block version and a digest of the
+  unversioned scope disclaimer.
+- **Version invalidation is a logical cache miss.** Old entries are not purged
+  synchronously; TTL/LRU eviction removes them. Provider failures and invalid
+  interpretations are never stored, and factual commune/establishment reads
+  always rerun. The cache is thread-safe but process-local, cold after restart,
+  has no Redis/cross-worker sharing and is not single-flight, so simultaneous
+  cold misses may duplicate a provider call without changing correctness.
 
 ## Workflow
 

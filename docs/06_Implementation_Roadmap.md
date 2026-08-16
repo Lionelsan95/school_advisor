@@ -75,8 +75,8 @@ independent of any HTTP API or LLM layer.
       values in isolation, without a real database. Note: the non-diffusion
       threshold (<20 candidates GT, <10 PRO) must **not** be implemented as a
       derivation rule — the spike showed it does not predict which values are
-      missing. Test that the source's own indication is preserved, not that a
-      threshold is recomputed. — 81 unit tests, no database and no network.
+      missing. Test that the source-published null is preserved without a
+      derived reason. — 81 unit tests, no database and no network.
 - [x] Ingestion failure (simulated: unreachable source, unexpected schema)
       produces a visible alert/log, not a silent partial import. — a missing
       source field raises `SourceSchemaMismatchError` *before* any row is
@@ -116,13 +116,55 @@ from the conversational layer.
 **Entry criteria:** Phase 1 exit criteria met.
 
 **Exit criteria:**
-- [ ] All endpoints covered by integration tests using a seeded test database.
-- [ ] No endpoint response contains evaluative wording (test this explicitly —
-      see `09_Definition_of_Done_Quality_Gates.md`).
-- [ ] API contract matches `08_API_Contract.md` (or the contract doc is
-      updated to reflect reality — keep them in sync).
-- [ ] Manual smoke test: fetch a real establishment end-to-end through Docker
-      Compose and verify the response against the source data.
+- [x] All endpoints covered by integration tests using a seeded test database.
+      — 28 integration tests in `tests/integration/test_establishments_api.py`,
+      seeding fake `999…` UAIs at Null Island so a proximity search returns an
+      exact, contamination-free set. They now run against a **disposable**
+      database (`TEST_DATABASE_URL`, or a DATABASE_URL ending in `_test`) and
+      skip loudly otherwise — see the incident note below.
+- [x] No endpoint response contains evaluative wording (test this explicitly —
+      see `09_Definition_of_Done_Quality_Gates.md`). — `tests/unit/
+      test_neutrality.py` scans every `ExplanatoryContent` field, the scope
+      disclaimer and the router's rejection message against the forbidden-word
+      list with word-boundary matching; `neutrality-checker` reviewed the
+      change.
+- [x] API contract matches `08_API_Contract.md`. — the two live endpoints were
+      rewritten from the running code, and every response key was verified
+      programmatically against the document (11 shapes, no undocumented
+      fields). Three groups of promised fields were removed because no source
+      publishes them: the non-diffusion reason, the academic/national averages,
+      and `effectif`.
+- [x] Missing provenance fails visibly. — a result row cannot serialize with
+      `source: null`; the API router logs the dataset/UAI/year and the API
+      withholds the fact sheet with a neutral `503`.
+- [x] Manual smoke test: fetch a real establishment end-to-end and verify the
+      response against the source data. — `0800001S` returns 14 years with
+      sources; `9760127J` (Mayotte, 655 candidates, 2019) returns the absence
+      without asserting a cause, which is the case a threshold-based message
+      would have mislabelled.
+
+**Phase 2 closed on 2026-08-15 after recovery stabilization.** 266 tests pass
+(238 unit + 28 integration); `ruff check .`, `ruff format --check .` and strict
+mypy are clean. Migrations 0001→0002 were re-run against a fresh disposable
+PostGIS database. Real-data smoke checks confirmed 14 sourced years for
+`0800001S` and the reason-free absence for `9760127J` (Mayotte, 655 candidates,
+2019). The F3/F6/F7 version-1 content was explicitly re-approved by the project
+owner. Two items were also fixed that belonged to earlier phases: nothing ever
+wrote to `source_reference` (so F10 had nothing to read), and directory
+ingestion did not read the `voie_*` / `section_*` fields required by API-2.
+
+> **Incident, 2026-08-15 — the integration suite wiped the development
+> database.** `tests/integration/test_repositories.py` legitimately TRUNCATEs
+> its tables, and `DATABASE_URL` pointed at the ingested development database,
+> so a plain `pytest` destroyed 67 816 establishments and 87 612 indicator
+> rows. Recovered in ~20s by re-running ingestion (the data is public), but the
+> hazard was real and the documented command triggered it. Integration tests
+> now refuse any database not explicitly marked disposable. Nothing about the
+> Phase 2 code was at fault; the landmine pre-dated it.
+
+**Carried forward:** a production `Dockerfile` (OPS-1) and `front/Dockerfile.dev`
+(Phase 4) still do not exist, so `docker compose up --build` cannot start all
+three services — use `docker compose up -d db backend`.
 
 ---
 
@@ -132,23 +174,85 @@ from the conversational layer.
 The LLM interprets and orchestrates; it does not generate factual or
 explanatory content.
 
+**Completed prerequisite checkpoint (2026-08-15):** migration 0003 adds the
+official commune reference and normalized PostgreSQL search indexes. Ingestion
+validates and atomically snapshots communes and provenance; `/communes/search`
+and the expanded `/establishments/search` now resolve UAI, name, canonical
+commune and postcode without an LLM. Ordering is factual match tier, then
+distance and stable identity keys; missing source provenance withholds results
+with `503`. Evidence: 359 tests (309 unit + 50 integration), zero skips; Ruff
+lint/format and strict mypy pass; a fresh database migrated 0001→0003, then
+downgraded 0003→0002 and upgraded again. This checkpoint does **not** close
+Phase 3.
+
+**Bounded-assistant checkpoint (2026-08-15):** the provider-neutral
+`QueryInterpreter` port and an Anthropic Messages adapter now feed exactly one
+forced, closed-schema tool result into the no-conversation-history
+`POST /assistant/search`. UAI, five-digit postcode and simple identity queries
+bypass the provider. Complex or subjective requests require explicit lexical
+support for every populated search filter; `location_mode` and
+`needs_location=true` additionally require supported exact-location or
+proximity markers. They then reuse the
+validated commune and establishment application cases. Exact commune and
+official-centre proximity are separate modes; ambiguity produces one approved
+static question, provider prose is never returned, and version-1 assistant
+content has explicit human approval. Mocked-provider, application and HTTP
+contract tests cover unavailable, malformed, adversarial and prompt-injection
+paths; no live Anthropic key/provider smoke is claimed.
+
+**Validated-interpretation cache checkpoint (2026-08-15):**
+`InMemoryInterpretationCache` is a thread-safe, process-local TTL/LRU cache.
+Only post-validation structured interpretations are stored; facts and
+provenance rerun every request. Normalized equivalent complex requests call
+the provider once while commune and establishment searches run twice.
+Provider/model/prompt-version/schema/source/editorial version changes miss
+logically;
+failures and invalid interpretations are not stored; deterministic fast paths
+never inspect cache/version state. Automated tests cover the exact TTL
+boundary, LRU promotion/eviction, replacement TTL, invalid configuration and
+lock behavior. There is no Redis, cross-worker sharing or single-flight.
+Phase 3 remains open only for an observed successful hosted CI execution of
+the guardrail suite. Evidence:
+510 tests (460 unit + 50 integration), zero skips; Ruff lint/format, strict
+mypy and `git diff --check` pass against the disposable PostGIS test database.
+No live Anthropic key/provider smoke is claimed.
+
+**CI-configuration checkpoint (2026-08-15):**
+`.github/workflows/backend.yml` defines `Backend quality gates` for every pull
+request and push to `main`. It uses `actions/checkout@v7` with persisted
+credentials disabled, `actions/setup-python@v7` with Python 3.12 and pip cache
+keyed by `back/pyproject.toml`, then a health-checked
+`postgis/postgis:16-3.4` service and dedicated `schools_db_test`. Alembic head,
+the full 510-test suite, Ruff lint/format and strict mypy are required in that
+order. The equivalent local run passed 510 tests (460 unit + 50 integration),
+zero skips, and all static gates. CI supplies no Anthropic key and performs no
+live provider smoke. No successful GitHub-hosted run is claimed: Phase 3
+remains open only until the first hosted backend workflow run is observed
+green without unexpected skips.
+
 **Scope:**
-- LLM tool-use wiring: the agent calls the Phase 2 API, never queries the
-  database directly.
-- Query interpretation and reformulation-for-confirmation behavior.
+- LLM tool-use wiring: inside the monolith, the orchestrator reuses the same
+  validated Phase 2 application cases and schemas as the HTTP API; the
+  provider receives no repository or connection and never queries the database.
+- Commune resolution uses the deterministic local reference before an
+  establishment proximity search; the LLM never invents coordinates.
+- Query interpretation, one approved static location clarification when
+  needed, and neutral recentering of subjective requests.
 - Guardrails: system prompt explicitly forbids evaluative wording, ranking
   language, and recommendations — with test cases (see `09_...` doc).
-- Response caching for repeated/common queries (cost control).
+- Bounded caching of validated interpretations for repeated/common queries;
+  factual searches still execute against current data on every request.
 
 **Entry criteria:** Phase 2 exit criteria met.
 
 **Exit criteria:**
-- [ ] A representative set of test queries (ambiguous, precise, edge cases
+- [x] A representative set of test queries (ambiguous, precise, edge cases
       like "best school") produces neutral, non-evaluative responses.
 - [ ] Non-regression test suite for tone exists and runs in CI, not just
       manual spot-checks.
-- [ ] Cache hit reduces LLM calls for repeated identical queries — verified
-      with a basic load test or manual repetition.
+- [x] Normalized repeated queries reduce provider calls; automated tests also
+      cover TTL/LRU behavior, version misses, invalid/failure non-caching and
+      per-request factual re-execution.
 
 ---
 

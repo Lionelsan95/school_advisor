@@ -184,3 +184,249 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
 - **Alternatives écartées :** ignorer les non-correspondances, écarté ;
   compléter par une autre source, écarté au MVP (hors périmètre).
 - **Réversibilité :** facile (la source peut se corriger d'elle-même).
+
+---
+
+## Décisions de la Phase 2 — API de lecture
+
+### 2026-08-15 — Sémantique DEPP de l'absence confirmée : trois motifs, aucun publié
+- **Contexte :** le ticket API-4 était bloqué sur la confirmation de la
+  sémantique du seuil de non-diffusion. La documentation officielle a été
+  consultée (*Guide méthodologique IVAC 2025*, « Conditions de publication des
+  indicateurs » ; fiche catalogue DEPP des IVAL).
+- **Constat :** l'absence d'une valeur ajoutée relève de **trois** situations
+  documentées — trop peu de candidats, moins de 75 % d'informations retrouvées
+  sur les élèves, et Mayotte (taux attendus non calculés). La DEPP les code
+  `ND` / `NS` dans ses fichiers de travail, **mais aucun de ces codes ne
+  survit à la publication en open data** : les trois cas arrivent en cellule
+  vide. Vérifié sur l'API le 15/08/2026 (lignes à 143 et 655 candidats).
+- **Décision :** le blocage d'API-4 est levé. Le motif est connu *en général* et
+  inconnaissable *ligne à ligne* ; le contenu éditorial énumère donc les
+  situations possibles sans en attribuer aucune.
+- **Alternatives écartées :** attribuer le seuil d'effectif par défaut, écarté
+  comme factuellement faux ; taire l'existence de motifs, écarté car cela
+  priverait le lecteur d'une information vraie et publique.
+- **Réversibilité :** facile côté texte, coûteuse côté attentes utilisateurs.
+
+### 2026-08-15 — Une seule catégorie d'absence (« valeur non disponible »)
+- **Contexte :** la charte (§ 6) et le journal demandaient de distinguer
+  « valeur non diffusée » (motif publié) de « valeur non disponible » (motif
+  non précisé).
+- **Décision :** ne retenir **qu'une seule catégorie**. La première serait
+  toujours vide : aucune source ne publie de motif, pour aucune ligne. La
+  charte § 6 a été amendée en conséquence. Validé par revue humaine explicite
+  (étape obligatoire du workflow « Explanatory content change »).
+- **Alternatives écartées :** conserver les deux catégories avec une branche
+  morte, écartée — du code jamais atteint et une distinction qu'aucune réponse
+  ne peut faire.
+- **Réversibilité :** facile (ajouter la seconde catégorie si une source
+  publiait un jour un motif).
+
+### 2026-08-15 — Le taux attendu est calculé et signalé comme tel
+- **Contexte :** le contrat d'API promettait
+  `taux_reussite_moyenne_academique` et `_nationale`. Vérification faite,
+  **aucun des trois jeux de données ne publie de moyenne académique ou
+  nationale par établissement**. Le taux *attendu*, lui, est reconstituable
+  exactement : la DEPP définit la valeur ajoutée comme
+  `taux constaté − taux attendu`.
+- **Décision :** exposer `taux_reussite_attendu`, marqué `calcule: true` avec
+  une `note_de_calcul`, conformément à la règle F10 du contrat sur les valeurs
+  dérivées. Les deux champs de moyennes sont retirés du contrat.
+- **Alternatives écartées :** n'exposer que la valeur ajoutée, écarté car le
+  lecteur voit alors « +3 » sans point de repère ; publier le taux attendu sans
+  le distinguer, écarté car il serait pris pour une donnée officielle.
+- **Réversibilité :** facile.
+
+### 2026-08-15 — Filières et sections ingérées depuis l'annuaire
+- **Contexte :** le filtre `filiere` est un critère d'acceptation d'API-2, et le
+  bloc identité prévoit `filieres` / `sections`. La Phase 1 ne lisait que 13
+  champs de l'annuaire et n'en faisait pas partie.
+- **Décision :** étendre `DIRECTORY_FIELDS` aux indicateurs `voie_*` et
+  `section_*` / `ulis` / `segpa`, stockés en `text[]` sur `establishment`
+  (migration 0002). Ce sont des descripteurs d'offre, jamais des résultats :
+  ils peuvent filtrer, jamais ordonner.
+- **Point d'attention :** l'annuaire n'est pas cohérent en types — `voie_*`,
+  `section_*` et `segpa` arrivent en chaînes `"0"`/`"1"`, `ulis` en entier.
+- **Alternatives écartées :** retirer `filiere` du contrat, écarté car cela
+  réduisait silencieusement le périmètre d'un ticket ; table de jointure,
+  écartée (listes courtes et fermées, sans attributs propres).
+- **Réversibilité :** facile.
+
+### 2026-08-15 — `effectif` retiré du contrat : la donnée n'existe pas
+- **Contexte :** le bloc identité du contrat prévoyait `effectif` et
+  `annee_effectif`.
+- **Décision :** les retirer. L'annuaire ne publie aucun effectif. Les IVAL GT
+  exposent bien `eff_2nde` / `eff_1ere` / `eff_term`, mais ce sont des effectifs
+  de résultats propres aux lycées GT, pas une donnée d'identité comparable
+  entre types d'établissement.
+- **Réversibilité :** facile (une autre source pourrait la fournir plus tard).
+
+### 2026-08-15 — Ports de lecture séparés des ports d'écriture
+- **Contexte :** `ports.py` ne décrivait que le côté ingestion (`replace_all`,
+  `append`).
+- **Décision :** ajouter des ports de lecture distincts
+  (`EstablishmentReader`, `IndicatorReader`, `SourceReferenceReader`) plutôt
+  que d'élargir les dépôts existants. Rien de ce qui sert une requête HTTP ne
+  doit pouvoir atteindre un `replace_all`. `SearchCriteria` n'a par
+  construction aucun champ de tri : l'impossibilité de classer est structurelle,
+  pas une vérification qu'un appelant pourrait oublier.
+- **Réversibilité :** facile.
+
+### 2026-08-15 — `source_reference` n'était alimentée par personne (lacune de Phase 1)
+- **Contexte :** la table existait depuis la migration 0001 mais aucun code
+  n'y écrivait. F10 (attribution de source) n'avait donc rien à lire.
+- **Décision :** corriger rétroactivement — les adaptateurs exposent
+  `source_references()` et l'ingestion les enregistre en fin de run réussi,
+  dans la même transaction que les données. La date de publication vient de
+  `data_processed` du catalogue ODS, et non de `modified`, qui bouge aussi sur
+  une simple édition de métadonnées.
+- **Réversibilité :** sans objet — correction d'un manque.
+
+### 2026-08-15 — Connexion unique par requête, en lecture seule et REPEATABLE READ
+- **Contexte :** une fiche d'établissement agrège trois requêtes. Empruntées
+  séparément au pool, elles pouvaient encadrer un commit d'ingestion et livrer
+  une identité d'avant le chargement avec des indicateurs d'après.
+- **Décision :** le routeur emprunte une connexion pour toute la requête et la
+  partage entre les lecteurs, dans une transaction REPEATABLE READ. Le pool est
+  configuré en lecture seule : rien qui serve une requête HTTP n'a à écrire.
+- **Alternatives écartées :** accepter la fenêtre d'incohérence, écartée — le
+  projet applique déjà cette exigence côté écriture.
+- **Réversibilité :** facile.
+
+### 2026-08-15 — Revalidation humaine du contenu F3/F6/F7 récupéré
+- **Contexte :** la reprise du travail Phase 2 ne permettait pas d'établir, à
+  partir du dépôt seul, que la revue humaine obligatoire avait réellement eu
+  lieu.
+- **Décision :** le propriétaire du projet a relu et approuvé explicitement,
+  sans modification, le contenu version 1 de
+  `back/src/domain/explanatory_content.py` : les six blocs F3/F6, dont
+  `valeur_non_disponible`, et le rappel de portée F7.
+- **Alternatives écartées :** déduire l'approbation d'une mention écrite par un
+  agent dans la documentation ; modifier le texte pendant la stabilisation.
+- **Réversibilité :** toute évolution future du texte exige une nouvelle revue
+  humaine explicite et une incrémentation de version.
+
+### 2026-08-15 — Une fiche sans provenance est retenue et signalée en 503
+- **Contexte :** le contrat impose une source pour chaque ligne de résultats,
+  mais la première implémentation autorisait encore `source: null` si la table
+  `source_reference` était incomplète.
+- **Décision :** l'application lève une erreur d'intégrité, journalise le jeu
+  de données, l'UAI et l'année concernés, puis l'API répond avec un message
+  technique neutre et le statut 503. Aucun chiffre orphelin n'est publié.
+- **Alternatives écartées :** retourner `source: null`, qui violerait F10 ;
+  fabriquer une source de secours, qui briserait la traçabilité.
+- **Réversibilité :** facile techniquement, mais contraire aux règles produit.
+
+### 2026-08-15 — Référentiel officiel des communes ingéré avant les requêtes
+- **Contexte :** le parcours Phase 3 doit comprendre « autour de Chaville » et
+  les recherches par commune/code postal, mais l'API Phase 2 n'avait ni
+  résolution de lieu ni centre de commune. Déduire un centre des coordonnées
+  des établissements aurait inventé une donnée ; appeler un géocodeur à chaque
+  requête aurait ajouté une dépendance réseau au chemin utilisateur.
+- **Décision :** ingérer le référentiel officiel de `geo.api.gouv.fr` dans
+  PostgreSQL avant les requêtes. Le payload complet est validé (schéma, codes
+  uniques, tableaux de codes postaux, coordonnées et volume minimal de 30 000)
+  avant toute publication. Un centre `null` reste `null`.
+- **Atomicité :** les communes, les établissements, les références de source
+  et l'audit du run partagent la même transaction. Le rollback restaure aussi
+  les snapshots des communes et de la provenance.
+- **Alternatives écartées :** géocodage à la volée ; centre moyen calculé à
+  partir des établissements ; ajout d'un service ou cache réseau séparé.
+- **Réversibilité :** facile côté adaptateur ; la table locale reste un port
+  applicatif indépendant de la source HTTP.
+
+### 2026-08-15 — Recherche textuelle déterministe limitée à l'identité
+- **Contexte :** le langage naturel viendra en Phase 3, mais UAI, nom,
+  commune et code postal doivent être résolus sans LLM et sans classement.
+- **Décision :** la recherche porte uniquement sur l'identité et le site
+  canonique, afin que la commune affichée soit toujours celle qui a correspondu.
+  L'ordre est : niveau de correspondance factuelle, distance lorsqu'elle est
+  fournie, puis clés alphabétiques/UAI stables. Aucun indicateur de résultat
+  ne filtre ni n'ordonne.
+- **Implémentation :** normalisation accent/casse et index trigrammes dans
+  PostgreSQL (`unaccent`, `pg_trgm`, colonnes générées), sans Elasticsearch.
+  Les réponses de recherche portent leur source officielle ; si elle manque,
+  l'API retient tous les résultats et répond `503`.
+- **Réversibilité :** facile pour les niveaux de correspondance ; toute
+  extension doit rester factuelle et conserver la règle de neutralité.
+
+### 2026-08-15 — Approbation humaine du contenu assistant version 1
+- **Contexte :** le nouvel endpoint borné a besoin de quatre questions de
+  clarification, d'un recentrage des demandes subjectives et d'un état
+  explicite lorsque l'interpréteur LLM est indisponible. Aucun de ces textes ne
+  doit être généré à la volée.
+- **Décision :** le propriétaire du projet a approuvé explicitement le contenu
+  version 1 de `back/src/domain/assistant_content.py`, sans modification. Les
+  réponses du fournisseur ne sont jamais affichées : seules ces chaînes
+  statiques peuvent parvenir à l'utilisateur.
+- **Réversibilité :** toute évolution exige une nouvelle revue humaine et une
+  incrémentation de `ASSISTANT_CONTENT_VERSION`.
+
+### 2026-08-15 — Le tool assistant réutilise les cas d'usage, sans HTTP loopback
+- **Contexte :** AGENT-1 exige que le LLM n'accède jamais directement à la
+  base. Dans le monolithe, rappeler sa propre API par HTTP ajouterait une panne,
+  une latence et une configuration réseau sans renforcer cette frontière.
+- **Décision :** l'orchestrateur appelle les mêmes cas d'usage et schémas
+  validés que les endpoints déterministes. Le fournisseur LLM ne reçoit aucun
+  dépôt ni connexion et ne peut produire que le schéma `InterpretedSearch` ;
+  seuls les adaptateurs PostgreSQL internes aux tools factuels lisent la base.
+- **Alternative écartée :** boucle HTTP vers le même processus.
+- **Réversibilité :** facile si les tools deviennent un service séparé plus tard.
+
+### 2026-08-15 — Port d'interprétation indépendant du fournisseur, Anthropic en premier
+- **Contexte :** la recherche complexe de Phase 3 a besoin d'une interprétation
+  optionnelle, sans laisser un fournisseur produire des faits, des explications
+  ou des critères implicites.
+- **Décision :** l'application dépend du port neutre `QueryInterpreter` ; le
+  premier adaptateur utilise Anthropic Messages. Clé, modèle, URL de base et
+  délai sont configurés par l'environnement. L'adaptateur n'accepte qu'un seul
+  appel forcé à un tool au schéma fermé, puis l'application vérifie
+  indépendamment que chaque filtre de recherche rempli, ainsi que
+  `needs_location=true`, est explicitement soutenu lexicalement par la demande
+  originale ; `location_mode` et `needs_location=true` exigent en plus un
+  marqueur de lieu exact ou de proximité reconnu. Le texte du fournisseur
+  n'est jamais affiché.
+- **Alternative écartée :** importer un SDK/comportement propre au fournisseur
+  dans `domain` ou `application`, accepter une réponse libre, ou considérer un
+  champ valide au seul motif qu'il respecte le schéma JSON.
+- **Réversibilité :** un autre adaptateur peut implémenter le même port ; le
+  contrat applicatif et les réponses HTTP restent inchangés.
+
+### 2026-08-15 — Cache d'interprétations validées local au processus
+- **Contexte :** les requêtes complexes répétées ne doivent pas repayer une
+  interprétation LLM identique, mais mettre en cache les faits officiels
+  risquerait de publier des résultats périmés après ingestion.
+- **Décision :** conserver uniquement les objets `InterpretedSearch` validés
+  dans un cache mémoire thread-safe TTL/LRU borné (256 entrées, 900 secondes
+  par défaut, valeurs configurables par environnement). La clé opaque combine
+  requête normalisée, fournisseur/modèle/version du prompt/digest du schéma,
+  puis versions des sources et contenus éditoriaux. L'insertion intervient
+  après la validation applicative ; erreurs fournisseur et interprétations
+  invalides ne sont jamais stockées. Résolution de commune, recherche
+  d'établissements et contrôles de provenance s'exécutent à chaque requête.
+- **Invalidation :** une modification de référence source, contenu,
+  fournisseur, modèle, version de prompt (`PROMPT_VERSION` est incrémenté avec
+  le prompt) ou schéma produit une nouvelle clé ; les anciennes entrées
+  expirent ensuite par TTL/LRU plutôt que par purge synchrone.
+- **Alternatives écartées :** Redis, cache distribué et cache de réponses
+  factuelles, non justifiés ou incompatibles avec l'actualisation des faits.
+- **Limites acceptées :** cache indépendant par worker, froid au redémarrage et
+  sans single-flight ; deux misses simultanés peuvent dupliquer un appel sans
+  affecter la correction.
+
+### 2026-08-15 — CI backend avec PostGIS jetable, sans fournisseur live
+- **Contexte :** AGENT-3 exige l'exécution systématique de la suite
+  adversariale et des gates backend, y compris les tests d'intégration qui
+  détruisent leurs tables.
+- **Décision :** GitHub Actions lance `Backend quality gates` sur chaque pull
+  request et push vers `main`, avec permission dépôt en lecture seule et
+  annulation des runs dépassés sur la même ref. Le job utilise Python 3.12 et
+  `postgis/postgis:16-3.4`, avec des URL dédiées à `schools_db_test`. Il migre
+  à head avant `pytest -ra`, puis exécute Ruff lint/format et `mypy src` depuis
+  `back/`.
+- **Déterminisme et secrets :** aucune clé Anthropic ni source publique live
+  n'entre dans le job normal ; les contrats fournisseur restent mockés. Cela
+  évite coût, variabilité réseau et exposition d'un secret.
+- **Statut de preuve :** le workflow est configuré et son équivalent local a
+  passé 510 tests sans skip, mais aucun run GitHub hébergé réussi n'a encore été
+  observé. La présence du fichier ne clôt donc pas seule AGENT-3/Phase 3.

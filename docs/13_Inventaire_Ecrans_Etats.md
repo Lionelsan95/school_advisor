@@ -1,5 +1,12 @@
 # Inventaire des écrans et états
 
+> **Statut d'implémentation : critères cibles des Phases 3 à 5.** Aucun
+> frontend n'existe encore. La recherche backend par UAI/nom/commune/code
+> postal et la résolution de communes existent ; l'autocomplétion, l'année sur
+> les cartes de résultat et les états détaillés
+> ci-dessous ne doivent pas être lus comme des capacités déjà présentes dans
+> l'API déterministe actuelle.
+
 ## 1. Matrice des écrans
 
 | ID | Écran | Priorité | Desktop | Mobile |
@@ -54,7 +61,7 @@ Les squelettes de chargement doivent conserver la structure sans simuler de faux
 | ID | État | Libellé utilisateur |
 |---|---|---|
 | D01 | Disponible | Valeur + unité + année |
-| D02 | Sous seuil | Valeur non diffusée |
+| D02 | Valeur absente | Valeur non disponible — la source ne précise pas le motif applicable à cette ligne |
 | D03 | Non applicable | Indicateur non applicable à cet établissement |
 | D04 | Non intégré | Aucune donnée compatible actuellement intégrée |
 | D05 | Ancien | Dernières données disponibles : [année] |

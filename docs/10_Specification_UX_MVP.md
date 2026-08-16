@@ -1,5 +1,10 @@
 # Spécification UX du MVP
 
+> **Statut d'implémentation : cible MVP.** La fiche REST, la recherche
+> déterministe par coordonnées/type/secteur/filière, UAI/nom/commune/code
+> postal et la résolution officielle de communes sont disponibles. Le
+> frontend, l'autocomplétion et l'interprétation de phrases restent à livrer.
+
 ## 1. Finalité
 
 Établissements en clair aide un citoyen à trouver, lire et comprendre les données publiques officielles relatives aux résultats des collèges et lycées, sans transformer ces données en classement ou en conseil personnalisé.
@@ -39,7 +44,8 @@ Le MVP ne comporte pas de parcours professionnel spécialisé.
 5. Vérifier l’année, la source et la fraîcheur de la donnée.
 6. Examiner l’évolution annuelle lorsque la méthode le permet.
 7. Placer deux établissements côte à côte sans verdict automatique.
-8. Comprendre pourquoi une donnée n’est pas diffusée.
+8. Comprendre ce que signifie l’absence d’une donnée et les limites de ce que
+   la source permet d’en dire.
 
 ## 4. Principes de conception
 
@@ -59,9 +65,11 @@ Les résultats géographiques sont triés par correspondance puis proximité. Au
 
 Chaque indicateur donne accès, sans changement de contexte, à : ce qu’il mesure, ce qu’il ne mesure pas, son mode de lecture et sa source.
 
-### P5 — Absence explicite
+### P5 — Absence explicite et sans motif inventé
 
-Une valeur absente possède un motif compréhensible. Le symbole `—` ne doit jamais être le seul contenu affiché.
+Une valeur absente possède une explication compréhensible. Le symbole `—` ne
+doit jamais être le seul contenu affiché, et l'interface n'attribue aucune
+cause à la ligne lorsque la source n'en publie pas.
 
 ### P6 — Traçabilité visible
 

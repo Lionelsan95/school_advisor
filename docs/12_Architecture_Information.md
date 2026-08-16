@@ -1,5 +1,12 @@
 # Architecture de l’information
 
+> **Statut d'implémentation : cible frontend.** Les cartes et écrans décrits
+> ici ne sont pas encore implémentés. La réponse de recherche déterministe reste
+> volontairement limitée à l'identité, l'offre et la distance ; l'année la
+> plus récente et l'état de disponibilité sont des besoins à traiter avant la
+> Phase 4, pas des champs actuellement servis. Le backend sert désormais UAI,
+> nom, commune, code postal et résolution officielle de commune.
+
 ## 1. Arborescence publique
 
 ```text

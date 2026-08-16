@@ -38,20 +38,35 @@
 
 ## Règles de diffusion des données (contrainte métier importante)
 
-Les résultats en valeur ajoutée **ne sont pas diffusés** :
-- en dessous de **20 candidats** en série générale/technologique
-- en dessous de **10 candidats** en série professionnelle
+> **Corrigé le 15/08/2026 (API-4)** sur la documentation officielle de la DEPP.
+> La version précédente de cette section énonçait « 20 candidats en GT, 10 en
+> PRO » comme *le* seuil de la valeur ajoutée. **C'est le seuil des taux bruts,
+> pas celui de la valeur ajoutée**, et il a changé depuis. Voir
+> `04_Journal_Decisions.md`, entrée « Sémantique DEPP de l'absence confirmée ».
+
+Il faut distinguer deux seuils différents :
+
+**Taux bruts** (réussite, mention) — non diffusés en dessous de **20 candidats**
+en série générale/technologique et **10** en série professionnelle.
+
+**Valeur ajoutée et taux attendus** — seuils plus stricts, et **relevés à
+partir de la session 2024** :
+- lycées généraux et technologiques : **40 candidats** (20 auparavant)
+- lycées professionnels : **20 candidats** (10 auparavant)
+- collèges, série générale du DNB : **40 candidats** (30 auparavant)
 
 Cette règle existe pour préserver la fiabilité statistique sur de petits effectifs. Elle doit être respectée et explicitée dans le produit (cf. fonctionnalité F6), jamais contournée ou estimée en interne.
 
-> **Nuance établie par le spike technique (15 août 2026) — à lire avant de rédiger F6.**
-> Cette règle ne se vérifie pas telle quelle dans les données publiées : des
-> lignes au-dessus du seuil n'ont pas de valeur ajoutée (notamment à Mayotte, où
-> elle n'est pas calculée), et quelques lignes en dessous en portent une. Le
-> produit ne doit donc **pas** dériver l'absence d'un comptage de candidats, ni
-> attribuer systématiquement le motif du seuil à toute valeur manquante.
-> Voir `05_Resultats_Spike_Technique.md`, section 3, problème n°2. La sémantique
-> exacte reste à confirmer sur la documentation méthodologique de la DEPP.
+> **Le seuil n'est pas le seul motif d'absence, et aucun motif n'est publié.**
+> Le *Guide méthodologique IVAC 2025* (« Conditions de publication des
+> indicateurs ») en documente trois : effectif insuffisant, informations
+> retrouvées pour moins de 75 % des élèves, et Mayotte (taux attendus non
+> calculés). La DEPP les code `ND` ou `NS` — **mais ces codes ne survivent pas
+> à la publication en open data** : les trois cas arrivent en cellule vide.
+> Le produit ne doit donc **pas** dériver l'absence d'un comptage de candidats,
+> ni attribuer un motif particulier à une valeur manquante. C'est ce que
+> mesurait déjà le spike (`05_Resultats_Spike_Technique.md`, section 3,
+> problème n°2) ; la documentation officielle en donne l'explication.
 
 ## Typologie des établissements
 

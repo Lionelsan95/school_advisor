@@ -286,6 +286,30 @@ source). Le libellé exact relève du contenu éditorial versionné et doit êtr
 validé par un humain — et la sémantique précise du seuil doit être confirmée
 sur la documentation méthodologique DEPP avant de figer le texte de F6.
 
+> **Annotation du 15/08/2026 (Phase 2, ticket API-4) — les mesures ci-dessus
+> ne sont pas remises en cause ; leur interprétation est précisée.**
+>
+> La documentation DEPP a depuis été consultée (*Guide méthodologique IVAC
+> 2025*, « Conditions de publication des indicateurs » ; fiche catalogue des
+> IVAL). Deux points modifient la lecture du tableau ci-dessus :
+>
+> 1. **Le seuil retenu ici pour la valeur ajoutée (20 en GT) est celui des
+>    taux bruts.** Le seuil des valeurs ajoutées est plus strict et a été
+>    relevé à partir de la session 2024 : 40 candidats en GT, 20 en PRO. Les
+>    « 457 lignes au-dessus du seuil sans valeur » restent exactes telles que
+>    mesurées, mais une part d'entre elles est en réalité *sous* le seuil réel
+>    de la valeur ajoutée. Le comptage n'a pas été refait ; il n'en avait pas
+>    besoin, la conclusion étant inchangée.
+> 2. **Il existe trois motifs documentés, pas un** — effectif, informations
+>    retrouvées pour moins de 75 % des élèves, et Mayotte — et **aucun n'est
+>    publié dans les données ouvertes** : les trois arrivent en cellule vide
+>    (vérifié sur l'API, lignes à 143 et 655 candidats).
+>
+> **Conséquence sur la consigne ci-dessus :** la distinction en deux catégories
+> n'est pas réalisable, la catégorie « motif publié » étant toujours vide. Une
+> seule catégorie a été retenue, après revue humaine — voir
+> `04_Journal_Decisions.md` et `14_Charte_Neutralite_Editoriale.md`, § 6.
+
 **3. Géolocalisation :** 133 lignes éligibles sur 14 692 (**0,91 %**) n'ont pas
 de latitude/longitude. La recherche par proximité doit les traiter sans échouer,
 et la fiche rester accessible. *(Décompte en lignes, non dédoublonné — soit
@@ -332,6 +356,13 @@ Le volume confirme qu'une architecture monolithique simple est le bon choix.
 | 7 | Traiter l'état « aucun indicateur » comme un cas courant (25–35 % des fiches), pas marginal | FE-2 |
 | 8 | Annoncer la couverture réelle mesurée, déficit Var/Vaucluse compris | Page méthodologie |
 
+> **État au 15/08/2026 après les Phases 1 et 2.** Les ajustements DATA-2 à
+> DATA-5 et API-3/API-4 sont implémentés et testés. Pour le point 2, la
+> vérification méthodologique ultérieure a établi qu'aucun motif ne survit dans
+> l'open data : l'implémentation utilise donc une catégorie unique
+> `valeur_non_disponible` et n'attribue aucune cause à une ligne. Les éléments
+> d'interface et d'historique restent rattachés aux phases ultérieures.
+
 ### Limite assumée de ce spike
 
 Le test de non-régression sur changement de schéma source exigé par `CLAUDE.md`
@@ -340,3 +371,30 @@ portent des assertions d'exécution (`check_fields_present`) qui interrompent le
 run si un champ attendu disparaît, mais il ne s'agit pas d'une suite de tests
 automatisée. **Cette exigence reste entièrement à satisfaire en Phase 1
 (DATA-3/4/5)** — voir l'entrée correspondante du journal de décisions.
+
+> **Résolution au 15/08/2026.** Cette limite décrit uniquement le livrable du
+> spike. La Phase 1 a depuis ajouté les tests automatisés de changement de
+> schéma, de volume suspect et de chute du taux de rattachement, puis la Phase 2
+> les a revalidés dans la suite complète. Le constat mesuré du spike reste
+> inchangé ; la dette associée est close.
+
+---
+
+## Observation complémentaire — référentiel Geo API (15/08/2026)
+
+Cette mesure complète le spike sans modifier ses constats Phase 0. L'endpoint
+officiel `https://geo.api.gouv.fr/communes` a été interrogé avec les champs
+`nom`, `code`, `codesPostaux`, `codeDepartement`, `centre` :
+
+- 34 969 communes, avec 34 969 codes uniques ;
+- cinq communes publient une liste de codes postaux vide ;
+- tous les centres présents dans ce payload étaient des GeoJSON `Point`
+  valides. L'implémentation accepte néanmoins un futur centre `null` et ne le
+  reconstruit pas ;
+- contrôle de cohérence : Chaville = code `92022`, code postal `92370`, centre
+  `[2.191, 48.8091]` (ordre GeoJSON longitude, latitude).
+
+L'adaptateur exige chaque champ sur chaque ligne, refuse les codes dupliqués,
+les coordonnées/tableaux mal formés et tout payload sous 30 000 communes. Les
+tests automatisés couvrent le changement de schéma obligatoire et le volume
+effondré avant toute écriture.

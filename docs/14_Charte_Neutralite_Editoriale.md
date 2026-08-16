@@ -38,7 +38,7 @@ Le produit s’adresse à l’utilisateur avec « vous » et privilégie des phr
 | Valeur ajoutée négative | Résultat observé inférieur de 3 points au résultat statistiquement attendu | L’établissement sous-performe |
 | Égalité | Les deux valeurs affichées sont identiques pour cette année | Les établissements sont équivalents |
 | Historique | Valeurs disponibles de 2022 à 2025 | Tendance positive sur quatre ans |
-| Donnée absente | Valeur non diffusée en raison du seuil d’effectif ⚠️ *(à réviser, voir § 6)* | Résultat insuffisant / N.A. |
+| Donnée absente | Valeur non disponible : elle n’est pas publiée pour cette année | Résultat insuffisant / N.A. / Valeur non diffusée en raison du seuil d’effectif |
 | Donnée ancienne | Dernières données disponibles : 2023 | Résultats obsolètes |
 | Comparaison | Placer les données côte à côte | Trouver le meilleur établissement |
 | Requête subjective | Ce service ne classe pas les établissements | Voici nos meilleurs résultats |
@@ -70,24 +70,55 @@ Le signe `+` ou `−` reste affiché car il fait partie de la donnée, mais il n
 
 ## 6. Données non diffusées
 
-> ⚠️ **Révision requise — constat du spike du 15/08/2026.**
-> La formulation de référence ci-dessous attribue toute absence de valeur au
-> seuil d'effectif. Le spike a mesuré 457 lignes IVAL GT **au-dessus** du seuil
-> sans valeur ajoutée (dont 113 à Mayotte, où elle n'est pas calculée), et 75
-> lignes sous le seuil qui en portent une. Cette formulation ne peut donc pas
-> être implémentée telle quelle : elle prêterait à l'absence une cause que la
-> source ne donne pas, ce que la règle 14.14 §3 interdit précisément.
-> Il faut distinguer au minimum « valeur non diffusée » (motif publié) et
-> « valeur non disponible » (motif non précisé).
-> Remplacement à valider par un humain — ticket API-4, lui-même conditionné à
-> la confirmation de la sémantique DEPP. Voir
-> `05_Resultats_Spike_Technique.md`, section 3, problème n°2.
-> *Le texte existant est conservé intact ci-dessous en attendant cette revue.*
+> ✅ **Révision effectuée le 15/08/2026 (ticket API-4), validée par revue
+> humaine.** La sémantique DEPP a été confirmée sur la documentation
+> officielle ; le texte ci-dessous remplace la formulation précédente, qui
+> attribuait toute absence au seuil d'effectif.
+>
+> **Une seule catégorie est retenue : « valeur non disponible ».** La consigne
+> initiale demandait d'en distinguer deux — « non diffusée » (motif publié) et
+> « non disponible » (motif non précisé). Cette distinction a été abandonnée
+> après vérification : **aucune source ne publie de motif**, pour aucune ligne.
+> La première catégorie serait donc toujours vide. Voir
+> `04_Journal_Decisions.md`, entrée « Une seule catégorie d'absence ».
 
-Texte de référence :
+Texte de référence (contenu versionné, `content_id: valeur_non_disponible`,
+implémenté dans `back/src/domain/explanatory_content.py`) :
 
-> **Valeur non diffusée**  
-> La DEPP ne publie pas cette valeur lorsque l’effectif est inférieur au seuil prévu pour préserver la fiabilité statistique. Cette absence ne permet de tirer aucune conclusion sur l’établissement.
+> **Valeur non disponible**
+> Cette valeur n'est pas publiée dans les données officielles pour cette année.
+>
+> L'absence de valeur n'est pas un résultat. Elle ne signifie ni un résultat
+> élevé, ni un résultat faible : elle signifie que la donnée n'a pas été
+> diffusée.
+>
+> La source publie l'absence sans en indiquer le motif. Sa documentation
+> méthodologique prévoit plusieurs situations dans lesquelles une valeur
+> ajoutée n'est pas diffusée : un nombre de candidats inférieur au seuil de
+> diffusion, des informations disponibles pour moins de 75 % des élèves, ou le
+> cas de Mayotte, où les taux attendus ne sont pas calculés.
+>
+> Il n'est pas possible de savoir laquelle de ces situations s'applique à cet
+> établissement pour cette année : le fichier publié ne le précise pas. Nous ne
+> l'estimons pas et ne le devinons pas.
+
+**Motifs documentés par la DEPP** (*Guide méthodologique IVAC 2025*,
+« Conditions de publication des indicateurs ») — ils justifient l'énumération
+ci-dessus, et interdisent d'en retenir un seul :
+
+1. **Trop peu d'élèves** — série générale : valeurs attendues et ajoutées = ND
+   en dessous de 40 candidats ; série professionnelle : taux et note = NS en
+   dessous de 5.
+2. **Trop peu d'informations retrouvées** — scores aux évaluations de 6ᵉ
+   retrouvés pour moins de 75 % des candidats, ou professions des parents
+   renseignées pour moins de 75 % d'entre eux : valeurs attendues et
+   ajoutées = ND.
+3. **Mayotte** — les taux attendus y donnant des résultats atypiques, ils sont
+   mis à ND, ainsi que les valeurs ajoutées associées.
+
+Aucun de ces codes (ND, NS) ne survit à la publication en open data : les trois
+cas arrivent sous la forme d'une cellule vide, vérifié sur l'API le 15/08/2026
+(lignes à 143 et 655 candidats, sans valeur ajoutée).
 
 Il est interdit :
 

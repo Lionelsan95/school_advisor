@@ -40,7 +40,7 @@ Les données publiques sur les établissements scolaires (annuaire, indicateurs 
 | F3 | Explicateur systématique | Bloc figé "ce que ça mesure / ne mesure pas" sur chaque indicateur — contenu éditorial validé, jamais généré librement par le LLM |
 | F4 | Vue côte-à-côte | Deux fiches en parallèle, sans score agrégé ni surlignage "meilleur" |
 | F5 | Historique pluriannuel | Courbe brute (jusqu'à 13 ans lycées, 4 ans collèges), sans interprétation de tendance |
-| F6 | Transparence données manquantes | Message explicite si seuil non atteint (règle DEPP : <20 candidats GT, <10 PRO) |
+| F6 | Transparence données manquantes | État explicite « valeur non disponible », sans attribuer à une ligne un motif que la source ne publie pas |
 | F7 | Rappel de portée permanent | Mention systématique et non désactivable sur les limites du périmètre |
 | F8 | Export / partage de fiche | PDF/lien, conserve intégralement F3/F6/F7 |
 | F9 | Glossaire intégré | Accessible à tout moment, termes cliquables partout dans l'interface |
@@ -64,7 +64,8 @@ Découverte (cadrage immédiat sur la neutralité) → Requête en langage natur
 
 ## Limites assumées publiquement
 - Décalage temporel : jusqu'à un an entre la donnée et la situation réelle d'un établissement
-- Couverture partielle : indicateurs non diffusés sous certains seuils d'effectif
+- Couverture partielle : certaines valeurs ne sont pas publiées ; la source
+  ouverte ne précise pas le motif applicable à chaque ligne
 - Périmètre volontairement restreint : résultats scolaires uniquement, pas l'ambiance, la vie scolaire, l'encadrement au quotidien
 - Pas de couverture nationale garantie à 100% dès le MVP
 
