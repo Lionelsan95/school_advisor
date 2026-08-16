@@ -190,6 +190,23 @@ describe("no structural affordance for ranking", () => {
     expect(tokens.match(/--c-error/g)?.length).toBeGreaterThan(0);
   });
 
+  it("the history chart exposes no trend or projection prop", () => {
+    const chart = src("components/HistoryChart.tsx");
+    // Charter §10 forbids projection curves and trend lines. A charting
+    // library would put both one prop away; hand-rolled SVG has no such prop,
+    // and this asserts none was added later.
+    expect(chart).not.toMatch(
+      /\b(trend|trendline|projection|forecast|smooth|regression|slope)\s*[?:]/i,
+    );
+  });
+
+  it("the history chart computes no aggregate over the series", () => {
+    const chart = src("components/HistoryChart.tsx");
+    // Min/max are used for axis scaling, which is legitimate. An average or a
+    // sum would be a derived statistic the source never published.
+    expect(chart).not.toMatch(/\b(average|moyenne|mean|sum|reduce)\s*\(/i);
+  });
+
   it("the scope disclaimer cannot be dismissed", () => {
     const disclaimer = src("components/ScopeDisclaimer.tsx");
     expect(disclaimer).not.toMatch(/dismiss|onClose|localStorage|useState/);

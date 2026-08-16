@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { FactSheetPage } from "./pages/FactSheetPage";
+import { HistoryPage } from "./pages/HistoryPage";
 import { HomePage } from "./pages/HomePage";
 import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { NAV, SITE } from "./content/copy";
@@ -25,6 +26,10 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/recherche" element={<SearchResultsPage />} />
           <Route path="/etablissements/:uai" element={<FactSheetPage />} />
+          <Route
+            path="/etablissements/:uai/historique"
+            element={<HistoryPage />}
+          />
         </Routes>
       </div>
     </>

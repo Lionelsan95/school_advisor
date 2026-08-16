@@ -179,3 +179,22 @@ export const A11Y = {
   externalLink: "Ouvre un nouvel onglet",
   absentValue: "Valeur non disponible",
 };
+
+/**
+ * History chart (F5). Titles are descriptive, never conclusive: the charter
+ * (§10) rules out a heading that states what the series shows ("progression",
+ * "amélioration") rather than what it is.
+ */
+export const HISTORY = {
+  heading: "Évolution année par année",
+  seriesLabel: "Indicateur affiché",
+  year: "Année",
+  notPublished: "Non publiée",
+  noSeriesData: "Aucune valeur publiée pour cet indicateur.",
+  chartTitle: (label: string, from: number, to: number) =>
+    `${label}, de ${from} à ${to}`,
+  tableCaption: (label: string) => `Valeurs exactes — ${label}`,
+  coverage: (from: number, to: number) => `Valeurs disponibles de ${from} à ${to}.`,
+  breakHeading: "Changement de méthode",
+  backToSheet: "Revenir à la fiche",
+};

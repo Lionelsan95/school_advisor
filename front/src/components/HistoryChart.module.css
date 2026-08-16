@@ -1,0 +1,21 @@
+/* Neutral ink for the series. No colour varies with value, direction or
+   magnitude — the charter (§9) forbids performance colouring, and there is no
+   token here that could express one. */
+.figure { margin: 0; }
+.svg { width: 100%; height: auto; display: block; }
+.axis { stroke: var(--c-rule); stroke-width: 1; }
+.line { stroke: var(--c-ink-muted); stroke-width: 2; }
+.point { fill: var(--c-ink); }
+
+/* Amber, as everywhere else, means "methodological precaution" — never a bad
+   result. Dashed so it reads as an annotation rather than as data. */
+.breakLine { stroke: var(--c-caution); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.breakLabel { fill: var(--c-caution); font-size: 12px; }
+
+.axisLabel { fill: var(--c-ink-faint); font-size: 12px; }
+.caption {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--c-ink-faint);
+}
+.empty { color: var(--c-ink-muted); font-size: var(--text-sm); }

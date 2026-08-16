@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from src.application.errors import MissingSourceReferenceError
 from src.application.get_establishment_fact_sheet import GetEstablishmentFactSheet
+from src.application.get_establishment_history import GetEstablishmentHistory
 from src.application.ports import SearchCriteria
 from src.application.search_establishments import (
     DEFAULT_LIMIT,
@@ -32,7 +33,11 @@ from src.infrastructure.persistence.queries import (
     PostgresIndicatorReader,
     PostgresSourceReferenceReader,
 )
-from src.interfaces.api.schemas import FactSheetOut, SearchResponseOut
+from src.interfaces.api.schemas import (
+    FactSheetOut,
+    HistoryOut,
+    SearchResponseOut,
+)
 
 router = APIRouter(prefix="/establishments", tags=["establishments"])
 logger = logging.getLogger(__name__)
@@ -89,6 +94,16 @@ def get_fact_sheet_use_case(
     connection: Annotated[psycopg.Connection, Depends(get_connection)],
 ) -> GetEstablishmentFactSheet:
     return GetEstablishmentFactSheet(
+        establishments=PostgresEstablishmentReader(connection),
+        indicators=PostgresIndicatorReader(connection),
+        sources=PostgresSourceReferenceReader(connection),
+    )
+
+
+def get_history_use_case(
+    connection: Annotated[psycopg.Connection, Depends(get_connection)],
+) -> GetEstablishmentHistory:
+    return GetEstablishmentHistory(
         establishments=PostgresEstablishmentReader(connection),
         indicators=PostgresIndicatorReader(connection),
         sources=PostgresSourceReferenceReader(connection),
@@ -181,3 +196,40 @@ def get_establishment(
             status_code=404, detail=f"Aucun établissement connu pour l'UAI {normalised}"
         )
     return FactSheetOut.of(sheet)
+
+
+@router.get("/{uai}/history", response_model=HistoryOut)
+def get_establishment_history(
+    uai: str,
+    use_case: Annotated[GetEstablishmentHistory, Depends(get_history_use_case)],
+) -> HistoryOut:
+    """Every published year for one establishment, oldest first (F5).
+
+    Same error semantics as the fact sheet, deliberately: a malformed UAI is a
+    400, an unknown one a 404, and missing provenance withholds the answer with
+    a 503 rather than showing figures whose origin cannot be stated.
+    """
+    try:
+        normalised = parse_uai(uai)
+    except InvalidUaiError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    try:
+        history = use_case.run(normalised)
+    except MissingSourceReferenceError as error:
+        logger.error(
+            "History withheld because source provenance is missing",
+            extra={
+                "dataset_id": error.dataset_id,
+                "uai": error.uai,
+                "year": error.year,
+            },
+        )
+        raise HTTPException(
+            status_code=503, detail=_MISSING_PROVENANCE_MESSAGE
+        ) from error
+    if history is None:
+        raise HTTPException(
+            status_code=404, detail=f"Aucun établissement connu pour l'UAI {normalised}"
+        )
+    return HistoryOut.of(history)

@@ -5,11 +5,11 @@ real shape diverges from what's described here — keep it in sync rather than
 letting it go stale (see the "outdated knowledge" warning in the project's
 documentation practices).*
 
-> **Implementation status (bounded-assistant checkpoint, 2026-08-15).** Live and matching
+> **Implementation status (Phase 5 in progress, 2026-08-16).** Live and matching
 > this document: `GET /health`, `GET /establishments/search`,
-> `GET /establishments/{uai}`, `GET /communes/search` and
-> `POST /assistant/search`. Still target-shape only: `/history`, `/compare`
-> and `/glossary` (Phase 5).
+> `GET /establishments/{uai}`, `GET /establishments/{uai}/history`,
+> `GET /communes/search` and `POST /assistant/search`. Still target-shape only:
+> `/compare` and `/glossary` (Phase 5, not yet built).
 >
 > The three live data-endpoint sections below were rewritten against the running code. Three
 > groups of fields promised by the Phase 1 draft were **removed because no
@@ -308,36 +308,56 @@ identity data was refreshed rather than looking like a broken pipeline.
 
 ## `GET /establishments/{uai}/history`
 
-**Response:** array of yearly raw data points (used by F5), plus any
-methodology break annotation identified in the technical spike.
+**Live.** Every published year for one establishment, oldest first — the series
+behind the history chart (F5).
 
+Same error semantics as the fact sheet: `400` for a malformed UAI, `404` for a
+well-formed unknown one, `503` when provenance is missing.
+
+**Response:**
 ```json
 {
-  "uai": "0910001A",
-  "history": [
-    { "annee": 2012, "valeur_ajoutee": 1.1 },
-    { "annee": 2013, "valeur_ajoutee": 0.8 }
-  ],
-  "methodology_breaks": [
+  "uai": "0800001S",
+  "nom": "Lycée Boucher de Perthes",
+  "points": [ /* ResultOut, identical shape to the fact sheet's rows */ ],
+  "ruptures_methodologiques": [
     {
-      "year": 2021,
-      "note": "Réforme du baccalauréat — voir docs/05_Resultats_Spike_Technique.md"
+      "annee": 2021,
+      "content_id": "rupture_bac_2021",
+      "version": 1,
+      "titre": "Changement de méthode en 2021",
+      "note": "La réforme du baccalauréat s'applique à partir de la session 2021 : …"
     }
-  ]
+  ],
+  "annees_couvertes": [2012, 2013, "…", 2025],
+  "explications": { /* the same six static blocks as the fact sheet */ },
+  "rappel_de_portee": "…"
 }
 ```
 
-*Updated after SPIKE-2 (2026-08-15).* The break year is **2021** (baccalauréat
-reform), not 2019. It affects the per-stream sub-indicators only: the
-total-level values this endpoint returns (`taux_reu_total`, `va_reu_total`,
-`taux_acces_2nde`) are continuous over 2012–2025 and were verified identical
-between the legacy and `_v2` datasets on every overlapping year.
+`points` carries the **full** `ResultOut` shape, not an abridged
+`{annee, valeur}` pair as the Phase 1 draft sketched. The chart lets the reader
+choose which of the seven figures to view, and an IVAC establishment populates
+only three of them — an abridged point could not express either.
 
-Note the asymmetry in history depth, which is a property of the sources: IVAL
-(lycées) covers 2012–2025, IVAC (collèges) only 2022–2025.
+**When a rupture is returned.** Only when this establishment's own history
+spans it: there must be at least one year before the break year and one from it
+onward. An establishment whose results start in 2022 gets an empty list,
+because it has nothing from before the reform to be misled into comparing
+against.
 
-The exact `note` wording is static editorial content (F3/F6/F7) and requires
-human review before commit — see `CLAUDE.md`, "Explanatory content change".
+**Why this matters more than it looks.** The 2021 baccalauréat reform changed
+the examination, but the total-level series this product stores is *perfectly
+continuous* across it — around 2 300 IVAL GT rows carry a value added in each
+of 2019 through 2023, with no gap at 2021. A chart therefore draws an unbroken
+line straight through a methodology change, and a reader takes the two sides as
+comparable. Verified on a real establishment (`0800001S`): the series runs from
+84 % in 2012 to 94 % in 2025 and reads as steady improvement unless the break
+is marked. The frontend consequently **breaks the polyline** at a rupture year
+rather than only annotating it — see `front/src/components/HistoryChart.tsx`.
+
+The asymmetry in history depth is a property of the sources, not a defect:
+IVAL (lycées) covers 2012–2025, IVAC (collèges) only 2022–2025.
 
 ---
 

@@ -10,8 +10,10 @@ relying on a human re-reading the strings on every change.
 
 Scope: every user-facing string this backend can currently emit that is not
 sourced verbatim from the official datasets — the editorial content in
-`domain/explanatory_content.py`, and the router's static rejection and
-data-integrity messages in `interfaces/api/establishments.py`.
+`domain/explanatory_content.py`, the router's static rejection and
+data-integrity messages in `interfaces/api/establishments.py`, and the
+methodology-break note in `domain/methodology_break.py` (API-7 / F5), which
+is new user-facing editorial content under the same human-review gate.
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ from src.application.assistant_search import (
 )
 from src.domain import assistant_content
 from src.domain import explanatory_content as content
+from src.domain.methodology_break import IVAL_BACCALAUREAT_REFORM
 from src.interfaces.api.assistant import _MISSING_ASSISTANT_SOURCE_MESSAGE
 from src.interfaces.api.communes import _MISSING_COMMUNE_SOURCE_MESSAGE
 from src.interfaces.api.establishments import (
@@ -234,3 +237,53 @@ class TestSubjectiveRefusalMessageIsTheApprovedConstantVerbatim:
         body = AssistantSearchUnavailableOut.of(outcome)
 
         assert body.message is assistant_content.SUBJECTIVE_REQUEST_REFRAME
+
+
+class TestNoForbiddenWordInMethodologyBreakContent:
+    """The 2021 baccalauréat-reform break (API-7 / F5) is editorial content
+    shown verbatim on every history chart that spans it — it gets the same
+    forbidden-word scan as the F3/F6/F7 static blocks above.
+    """
+
+    @pytest.mark.parametrize("field", ["title", "note"])
+    def test_field_carries_no_evaluative_wording(self, field: str) -> None:
+        text = getattr(IVAL_BACCALAUREAT_REFORM, field)
+        match = _FORBIDDEN_PATTERN.search(text)
+        assert match is None, (
+            f"methodology_break.{field} contains evaluative wording "
+            f"{match.group() if match else None!r} in: {text!r}"
+        )
+
+
+class TestMethodologyBreakNoteStatesNonComparabilityNotADirection:
+    """docs/14_Charte_Neutralite_Editoriale.md §10 requires ruptures to be
+    visible, but never characterised as an improvement or a decline — the
+    reform changed what is being measured, not whether results got better or
+    worse. The note must say the values are not comparable, never state a
+    direction of change.
+    """
+
+    _DIRECTIONAL_WORDS = (
+        "amélioration",
+        "amélioré",
+        "dégradation",
+        "dégradé",
+        "progrès",
+        "progression",
+        "recul",
+        "hausse",
+        "baisse",
+        "augmente",
+        "diminue",
+    )
+
+    def test_the_note_names_no_direction_of_change(self) -> None:
+        note = IVAL_BACCALAUREAT_REFORM.note.lower()
+        for word in self._DIRECTIONAL_WORDS:
+            assert word not in note, (
+                f"methodology break note asserts a direction ({word!r}): {note!r}"
+            )
+
+    def test_the_note_states_the_values_are_not_comparable(self) -> None:
+        note = IVAL_BACCALAUREAT_REFORM.note.lower()
+        assert "comparables" in note

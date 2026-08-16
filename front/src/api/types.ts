@@ -175,3 +175,44 @@ export interface SearchParams {
   limit?: number;
   offset?: number;
 }
+
+/** One year of one selected indicator series, for the history chart (F5). */
+export interface HistoryPoint {
+  annee: number;
+  valeur: number | null;
+}
+
+/**
+ * A year from which a series stops being strictly comparable.
+ *
+ * Present only when the establishment's own history spans it. The note is
+ * static reviewed content from the API — the chart must never compose its own
+ * explanation of why the reader should not read across the year.
+ */
+export interface MethodologyBreak {
+  annee: number;
+  content_id: string;
+  version: number;
+  titre: string;
+  note: string;
+}
+
+export interface HistoryResponse {
+  uai: string;
+  nom: string;
+  points: ResultYear[];
+  ruptures_methodologiques: MethodologyBreak[];
+  annees_couvertes: number[];
+  explications: Record<string, Explanation>;
+  rappel_de_portee: string;
+}
+
+/** Which figure of a result year the chart is showing. */
+export type HistorySeriesKey =
+  | "taux_reussite"
+  | "taux_reussite_attendu"
+  | "valeur_ajoutee_reussite"
+  | "taux_acces"
+  | "valeur_ajoutee_acces"
+  | "taux_mention"
+  | "valeur_ajoutee_mention";

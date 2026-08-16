@@ -10,11 +10,13 @@ field it is actually asserting about.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from src.domain.enums import EstablishmentType, IndicatorType, Sector
 from src.domain.establishment import Establishment, Site
 from src.domain.indicator_result import IndicatorResult
+from src.domain.source_reference import SourceReference
 
 
 def make_site(sequence: int = 0, name: str = "Test school", **overrides: Any) -> Site:
@@ -60,6 +62,22 @@ def make_indicator_result(
     fields: dict[str, Any] = dict(uai=uai, year=year, indicator_type=indicator_type)
     fields.update(overrides)
     return IndicatorResult(**fields)
+
+
+def make_source_reference(
+    dataset_id: str,
+    last_synchronised_at: datetime | None = None,
+    **overrides: Any,
+) -> SourceReference:
+    """A provenance record for one of the datasets in `dataset_ids.py`."""
+    fields: dict[str, Any] = dict(
+        dataset_id=dataset_id,
+        url=f"https://example.invalid/{dataset_id}",
+        last_synchronised_at=last_synchronised_at or datetime(2026, 1, 1, tzinfo=UTC),
+        source_published_at=None,
+    )
+    fields.update(overrides)
+    return SourceReference(**fields)
 
 
 # The offer-descriptor flags the directory publishes (Phase 2, ticket API-2).

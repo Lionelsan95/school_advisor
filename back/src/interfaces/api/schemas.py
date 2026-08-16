@@ -24,12 +24,14 @@ from src.application.assistant_search import (
     UnavailableReason,
 )
 from src.application.get_establishment_fact_sheet import FactSheet, Figure, ResultRow
+from src.application.get_establishment_history import EstablishmentHistory
 from src.application.ports import SearchCriteria
 from src.application.search_communes import CommuneSearchResults
 from src.application.search_establishments import EstablishmentSearchResponse
 from src.domain import assistant_content
 from src.domain import explanatory_content as content
 from src.domain.establishment import Establishment
+from src.domain.methodology_break import MethodologyBreak
 from src.domain.source_reference import SourceReference
 
 
@@ -201,6 +203,67 @@ _FACT_SHEET_EXPLANATIONS = (
     content.MENTION_RATE,
     content.ABSENT_VALUE,
 )
+
+
+class MethodologyBreakOut(BaseModel):
+    """A year from which the series stops being strictly comparable.
+
+    Present only when this establishment's own history spans the break. The
+    note is static, human-reviewed content: the chart must be able to say why
+    the reader should not read across the year, and that sentence cannot be
+    composed at request time.
+    """
+
+    annee: int
+    content_id: str
+    version: int
+    titre: str
+    note: str
+
+    @classmethod
+    def of(cls, item: MethodologyBreak) -> MethodologyBreakOut:
+        return cls(
+            annee=item.year,
+            content_id=item.content_id,
+            version=item.version,
+            titre=item.title,
+            note=item.note,
+        )
+
+
+class HistoryOut(BaseModel):
+    """Every published year for one establishment, oldest first.
+
+    Carries the same figure objects as the fact sheet — a history point is not
+    a reduced or rounded version of a result, it is the same result read in a
+    different order. `annees_couvertes` states the span explicitly so a reader
+    can tell a short history (IVAC starts in 2022) from a gap in a long one.
+    """
+
+    uai: str
+    nom: str
+    points: list[ResultOut]
+    ruptures_methodologiques: list[MethodologyBreakOut]
+    annees_couvertes: list[int]
+    explications: dict[str, ExplanationOut]
+    rappel_de_portee: str = Field(default=content.SCOPE_DISCLAIMER)
+
+    @classmethod
+    def of(cls, history: EstablishmentHistory) -> HistoryOut:
+        return cls(
+            uai=history.establishment.uai,
+            nom=history.establishment.name,
+            points=[ResultOut.of(row) for row in history.points],
+            ruptures_methodologiques=[
+                MethodologyBreakOut.of(item) for item in history.methodology_breaks
+            ],
+            annees_couvertes=list(history.covered_years),
+            explications={
+                block.content_id: ExplanationOut.of(block)
+                for block in _FACT_SHEET_EXPLANATIONS
+            },
+            rappel_de_portee=content.SCOPE_DISCLAIMER,
+        )
 
 
 class FactSheetOut(BaseModel):

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { getFactSheet } from "../api/establishments";
 import type { Explanation, ResultYear } from "../api/types";
 import { ErrorState } from "../components/ErrorState";
 import { ExplanationPanel } from "../components/ExplanationPanel";
 import { Figure } from "../components/Figure";
 import { ScopeDisclaimer } from "../components/ScopeDisclaimer";
-import { FACT_SHEET, SEARCH } from "../content/copy";
+import { FACT_SHEET, HISTORY, SEARCH } from "../content/copy";
 import { useApiResource } from "../hooks/useApiResource";
 import styles from "./FactSheetPage.module.css";
 
@@ -145,6 +145,13 @@ export function FactSheetPage() {
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{FACT_SHEET.resultsHeading}</h2>
+        {sheet.resultats.length > 1 && (
+          <p className={styles.note}>
+            <Link to={`/etablissements/${sheet.uai}/historique`}>
+              {HISTORY.heading}
+            </Link>
+          </p>
+        )}
 
         {sheet.resultats.length === 0 ? (
           <div className={styles.empty}>

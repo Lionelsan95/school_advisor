@@ -1,0 +1,15 @@
+.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.caption {
+  text-align: left;
+  color: var(--c-ink-faint);
+  padding-bottom: var(--space-2);
+}
+.table th, .table td {
+  text-align: left;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--c-rule);
+  font-variant-numeric: tabular-nums;
+}
+/* Every row has identical weight: no year is highlighted as a maximum. */
+.table tbody th { font-weight: 400; color: var(--c-ink-muted); }
+.absent { color: var(--c-caution); }

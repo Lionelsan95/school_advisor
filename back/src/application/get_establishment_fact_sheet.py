@@ -113,7 +113,7 @@ class FactSheet:
     last_synchronised_at: datetime | None
 
 
-def _to_result_row(
+def to_result_row(
     result: IndicatorResult, sources: dict[str, SourceReference]
 ) -> ResultRow:
     dataset_id = INDICATOR_DATASET_IDS[result.indicator_type]
@@ -157,7 +157,7 @@ class GetEstablishmentFactSheet:
 
         sources = self._sources.all_by_dataset_id()
         results = tuple(
-            _to_result_row(result, sources)
+            to_result_row(result, sources)
             for result in self._indicators.list_for_establishment(uai)
         )
 

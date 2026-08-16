@@ -1,5 +1,10 @@
 import { apiGet } from "./client";
-import type { FactSheet, SearchParams, SearchResponse } from "./types";
+import type {
+  FactSheet,
+  HistoryResponse,
+  SearchParams,
+  SearchResponse,
+} from "./types";
 
 export function searchEstablishments(
   params: SearchParams,
@@ -10,4 +15,12 @@ export function searchEstablishments(
 
 export function getFactSheet(uai: string, signal?: AbortSignal): Promise<FactSheet> {
   return apiGet<FactSheet>(`/establishments/${encodeURIComponent(uai)}`, {}, signal);
+}
+
+export function getHistory(uai: string, signal?: AbortSignal): Promise<HistoryResponse> {
+  return apiGet<HistoryResponse>(
+    `/establishments/${encodeURIComponent(uai)}/history`,
+    {},
+    signal,
+  );
 }
