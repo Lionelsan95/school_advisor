@@ -1,0 +1,14 @@
+.page { padding: var(--space-5) var(--space-4); max-width: 60rem; margin: 0 auto; }
+.heading { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-2); }
+.count { margin: 0 0 var(--space-4); color: var(--c-ink-muted); font-size: var(--text-sm); }
+.sort { display: block; color: var(--c-ink-faint); }
+.criteria { margin-bottom: var(--space-4); }
+.criteriaHeading { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-ink-faint); margin: 0 0 var(--space-2); }
+.chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { min-height: 44px; padding: 0 var(--space-3); font: inherit; font-size: var(--text-sm); background: var(--c-surface-sunken); border: 1px solid var(--c-rule); border-radius: var(--radius); cursor: pointer; }
+/* Uniform card styling: no card may be emphasised over another. */
+.results { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+.card { border: 1px solid var(--c-rule); border-radius: var(--radius); padding: var(--space-4); background: var(--c-surface); }
+.cardTitle { margin: 0 0 var(--space-1); font-size: var(--text-base); }
+.cardMeta { margin: 0; font-size: var(--text-sm); color: var(--c-ink-muted); }
+.empty { background: var(--c-surface-sunken); border-radius: var(--radius); padding: var(--space-5); max-width: var(--measure); }

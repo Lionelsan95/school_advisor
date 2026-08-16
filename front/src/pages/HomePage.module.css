@@ -1,0 +1,9 @@
+.page { padding: var(--space-6) var(--space-4); max-width: 60rem; margin: 0 auto; }
+.title { font-size: var(--text-2xl); margin: 0 0 var(--space-3); max-width: var(--measure); }
+.intro { margin: 0 0 var(--space-5); max-width: var(--measure); color: var(--c-ink-muted); }
+.sectionTitle { font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-3); }
+.commitments { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-4); }
+@media (min-width: 48rem) { .commitments { grid-template-columns: repeat(3, 1fr); } }
+.commitment { background: var(--c-surface-sunken); border-radius: var(--radius); padding: var(--space-4); }
+.commitmentTitle { margin: 0 0 var(--space-2); font-size: var(--text-base); }
+.commitmentBody { margin: 0; font-size: var(--text-sm); color: var(--c-ink-muted); }

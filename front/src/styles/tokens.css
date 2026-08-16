@@ -1,0 +1,89 @@
+/**
+ * Colour and spacing tokens.
+ *
+ * The palette is constrained by docs/14_Charte_Neutralite_Editoriale.md §9,
+ * which is a product rule, not a taste preference. There is deliberately no
+ * "success" or "danger" colour for data:
+ *
+ *   - No red/green pair exists here at all, so a result can never be tinted by
+ *     whether it is high or low. The charter forbids it and the absence of the
+ *     tokens is what makes it hard to do by accident.
+ *   - Amber is reserved for a methodological caution (an absent value, a
+ *     scope reminder) and never means "bad".
+ *   - Red exists once, for a technical error the user must act on — never for
+ *     a figure.
+ *
+ * Colour is never the only signal: every state that uses one also carries an
+ * icon or a word, for accessibility and because a colour alone invites reading
+ * a judgement into it.
+ */
+
+:root {
+  /* Neutrals — the entire palette for data display. */
+  --c-ink: #1a1c1f;
+  --c-ink-muted: #4a4f57;
+  --c-ink-faint: #6b7280;
+  --c-rule: #d8dbe0;
+  --c-surface: #ffffff;
+  --c-surface-sunken: #f5f6f8;
+
+  /* Action. Used for links and controls, never to qualify a value. */
+  --c-action: #1d4ed8;
+  --c-action-hover: #1436a4;
+
+  /* Methodological caution — an absence, a scope reminder. Not "bad". */
+  --c-caution: #92400e;
+  --c-caution-surface: #fef6e7;
+
+  /* Technical error the user must act on. Never applied to a figure. */
+  --c-error: #a51b1b;
+  --c-error-surface: #fdf0f0;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  --radius: 6px;
+  --measure: 68ch;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--c-ink);
+  background: var(--c-surface);
+}
+
+/* Keyboard focus must stay visible: it is the only way some users can tell
+   where they are, and docs/13 §10 requires it explicitly. */
+:focus-visible {
+  outline: 3px solid var(--c-action);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--c-action);
+}
+
+a:hover {
+  color: var(--c-action-hover);
+}

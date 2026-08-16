@@ -460,3 +460,79 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   réelles ; rédiger un troisième message, écartée car elle aurait exigé une
   nouvelle revue éditoriale pour un gain nul.
 - **Réversibilité :** facile.
+
+---
+
+## Décisions de la Phase 4 — Frontend MVP
+
+### 2026-08-16 — CORS ajouté au backend, plutôt qu'un proxy Vite
+- **Contexte :** le frontend est servi sur `:5173` et l'API sur `:8000`. Aucun
+  middleware CORS n'existait ; vérifié sur le service en marche, un préflight
+  renvoyait 405 et aucun en-tête `access-control-*` n'était émis. Le navigateur
+  aurait refusé chaque appel.
+- **Décision :** ajouter `CORSMiddleware`, origines lues dans la configuration.
+  Écarté : le proxy du serveur de développement Vite, qui ne résout que le
+  développement — un bundle compilé n'a plus de serveur de développement — et
+  qui rendrait l'application *same-origin* en local et *cross-origin* en
+  production, soit exactement la divergence d'environnement que le patron de
+  configuration du projet cherche à éviter.
+- **Point subtil :** la configuration CORS vit dans une classe `CorsSettings`
+  distincte. Le middleware doit être installé à la construction de
+  l'application, donc à l'import ; or `Settings.database_url` est
+  volontairement obligatoire. Passer par `Settings` rendait `main` impossible à
+  importer sans base de données configurée et cassait la collecte des tests.
+- **Réversibilité :** facile.
+
+### 2026-08-16 — Neutralité imposée par la structure des composants
+- **Contexte :** la charte (§ 9) interdit une liste de procédés visuels. Une
+  simple discipline de relecture ne suffit pas : le raccourci fautif (colorer
+  une valeur, trier par résultat) est toujours le plus commode à écrire.
+- **Décision :** rendre le mauvais geste difficile à écrire, pas seulement
+  interdit.
+  - `Figure` est le seul composant autorisé à afficher un résultat chiffré, et
+    n'expose **aucune** propriété `variant` / `tone` / `status`. Rien ne peut
+    lui être transmis signifiant « bon » ou « mauvais ».
+  - `source` y est une propriété **obligatoire** : aucun chemin de code
+    n'affiche un nombre sans sa provenance.
+  - Le texte d'une absence est un bloc renvoyé par l'API, jamais une phrase
+    écrite dans le frontend — le composant ne peut donc pas attribuer une cause.
+  - `SearchHit` ne porte aucun indicateur : la liste de résultats ne peut pas
+    être triée ni colorée par une valeur, faute de donnée à brancher.
+  - Aucun contrôle de tri n'existe sur la page de résultats, pas même désactivé.
+  - `tokens.css` ne contient aucun couple rouge/vert. L'ambre signale une
+    précaution méthodologique, le rouge une erreur technique — jamais un chiffre.
+- **Alternatives écartées :** une bibliothèque de composants (MUI), écartée car
+  ses primitives de « mise en avant », badges et notations sont à une propriété
+  près d'enfreindre la charte.
+- **Réversibilité :** coûteuse une fois des composants dérivés écrits.
+
+### 2026-08-16 — Le tri appliqué est annoncé, jamais deviné
+- **Contexte :** l'API classe par correspondance, proximité ou ordre
+  alphabétique, et le renvoie dans `tri`.
+- **Décision :** afficher en toutes lettres l'ordre appliqué (« Par
+  correspondance avec votre recherche, puis par proximité »). Un lecteur qui
+  ignore l'ordre d'une liste peut y lire un classement ; l'annoncer supprime
+  l'ambiguïté et rend visible qu'aucune des options ne dépend d'un résultat.
+- **Réversibilité :** facile.
+
+### 2026-08-16 — Le rappel de portée d'accueil vit dans le frontend, sous contrôle
+- **Contexte :** la charte (§ 7) définit deux textes de rappel : une « version
+  courte », accompagnant les résultats, et une « version d'accueil ». Le
+  backend n'implémente que la première (`SCOPE_DISCLAIMER`), servie avec chaque
+  réponse. La page d'accueil énonce sa promesse *avant* toute recherche : il
+  n'y a donc aucune réponse d'API pour la porter.
+- **Décision :** reproduire la version d'accueil dans `front/src/content/copy.ts`
+  et dans la balise `description` de `index.html`, **et faire de la charte la
+  source de vérité vérifiée** : deux tests lisent
+  `docs/14_Charte_Neutralite_Editoriale.md` et échouent si l'un ou l'autre texte
+  s'en écarte d'un caractère. `index.html`, qui échappait au balayage, est
+  désormais inclus.
+- **Alternatives écartées :** exposer le texte via un nouvel endpoint, écarté —
+  cela ferait dépendre d'un aller-retour réseau la phrase la plus importante de
+  la page d'accueil, pour une chaîne constitutionnellement figée ; laisser la
+  copie sans garde-fou, écarté — c'est précisément la dérive que la revue de
+  neutralité a signalée.
+- **Point subtil :** les tests frontend doivent donc être lancés avec la racine
+  du dépôt montée, pas seulement `front/`, sinon la charte est introuvable.
+  Documenté dans CLAUDE.md.
+- **Réversibilité :** facile.

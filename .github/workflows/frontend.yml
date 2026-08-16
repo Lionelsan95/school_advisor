@@ -1,0 +1,54 @@
+name: Frontend quality gates
+
+on:
+  pull_request:
+  push:
+    # Same reasoning as backend.yml: this repository's default branch is
+    # `master`, and `main` is listed so a future rename does not silently stop
+    # running the gates.
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: front
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Includes the neutrality regressions: the forbidden-word scan over all
+      # frontend-authored copy, and the structural checks that keep a ranking
+      # un-buildable (no sort control, no judgement prop on Figure, no result
+      # figure on a search row, no red/green pair in the design tokens).
+      - name: Test
+        run: npm run test
+
+      - name: Type-check and build
+        run: npm run build

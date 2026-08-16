@@ -302,6 +302,35 @@ scope defined in `docs/01_Vision_Produit.md`).
 - [ ] Responsive on mobile viewport — no native app, but must not break on
       small screens.
 
+**Status: implemented, not yet closed.** FE-1, FE-2 and FE-3 are built and
+verified programmatically — 43 frontend tests, oxlint clean, TypeScript build
+clean, and a smoke run against the live API confirming CORS, the response
+shapes, that every result row carries a source, and that the search rows carry
+no figure. What is *not* done is the part that cannot be automated, and which
+is deliberately what all three criteria above ask for:
+
+> **All three remaining criteria need a human at a screen.** The browser
+> extension was not connected in the session that built this, so no visual pass
+> happened. Specifically still open: walking the funnel end to end, judging
+> whether any page *reads* as a recommendation — which is a reading, not a
+> lint rule, and is exactly why the charter puts a person here — and checking a
+> real mobile viewport, including that the scope disclaimer is visible without
+> scrolling (docs/10 §P8). Ticking these without doing them would defeat their
+> purpose.
+
+Two decisions taken during the phase, both recorded in
+`04_Journal_Decisions.md`: CORS was added to the backend (a backend change
+inside a frontend phase, committed separately as CORS-1), and neutrality is
+enforced by component structure rather than by copy discipline alone.
+
+Deliberately out of scope, and not built: the "add to comparison" control. The
+information-architecture doc treats it as always available, but the comparison
+screen is Phase 5 (FE-5/API-8) and shipping a visible control that leads
+nowhere is a dead end in the funnel the first criterion above tests for.
+
+Also carried forward, unchanged: production images remain a Phase 6 concern
+(OPS-1). Only development images exist.
+
 ---
 
 ## Phase 5 — History, comparison, and secondary features (F4, F5, F8, F9)

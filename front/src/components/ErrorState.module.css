@@ -1,0 +1,30 @@
+.state {
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+  max-width: var(--measure);
+}
+
+/* Red is reserved for a technical problem the user must act on (docs/14 §9). */
+.technical {
+  background: var(--c-error-surface);
+  border-left: 4px solid var(--c-error);
+  color: var(--c-error);
+}
+
+/* Not-found, invalid input and withheld provenance are not failures of the
+   establishment, so they are presented as information, not as alarm. */
+.informational {
+  background: var(--c-surface-sunken);
+  border-left: 4px solid var(--c-ink-faint);
+  color: var(--c-ink);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.body {
+  margin: 0;
+}

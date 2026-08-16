@@ -103,13 +103,16 @@ python -m src.infrastructure.ingestion --rollback   # undo the last load
 # Apply migrations (also needs DATABASE_URL; it has no fallback by design)
 alembic upgrade head
 
-# Frontend — run from front/. The host has no node/npm in this environment, so
-# every npm command runs in a container. Either use the compose service:
+# Frontend — the host has no node/npm in this environment, so every npm command
+# runs in a container. Either use the compose service:
 docker compose exec frontend npm run test
-# ...or a throwaway container (the -u keeps generated files owned by you, not
-# root, which is what makes a stray `npm install` on the host bind mount safe):
-docker run --rm -v "$PWD/front:/app" -w /app -u "$(id -u):$(id -g)" \
-  node:22-alpine npm run build
+# ...or a throwaway container. Mount the REPOSITORY ROOT, not front/: the
+# neutrality test reads docs/14_Charte_Neutralite_Editoriale.md to assert the
+# home-page scope reminder still matches the charter word for word, and a
+# front/-only mount makes that file unreachable. The -u keeps generated files
+# owned by you rather than root on the bind mount.
+docker run --rm -v "$PWD:/repo" -w /repo/front -u "$(id -u):$(id -g)" \
+  node:22-alpine npm run test
 
 npm run dev      # Vite dev server (compose already runs this)
 npm run build    # tsc -b && vite build
@@ -299,6 +302,32 @@ reading the code.)*
   always rerun. The cache is thread-safe but process-local, cold after restart,
   has no Redis/cross-worker sharing and is not single-flight, so simultaneous
   cold misses may duplicate a provider call without changing correctness.
+
+*(Added during Phase 4, 2026-08-16 — frontend.)*
+
+- **The frontend is cross-origin from the API** (Vite :5173, API :8000).
+  `CORSMiddleware` is configured from `CorsSettings`, which is a *separate*
+  class from `Settings` on purpose: middleware is installed at import time
+  while `Settings.database_url` is required, so resolving CORS through
+  `Settings` makes `main` unimportable without a database and breaks test
+  collection. Consequence: do not move `cors_allowed_origins` onto `Settings`.
+- **The host has no node/npm — only Docker.** Every npm command runs in a
+  container, with `-u $(id -u):$(id -g)` so generated files are not root-owned
+  on the bind mount. Consequence: `npm create`, `npm install`, `vitest` and
+  `npm run build` all go through `docker compose exec frontend` or a throwaway
+  `node:22-alpine`.
+- **Neutrality in the UI is structural, not editorial discipline.** `Figure` is
+  the only component that renders a result, has no `variant`/`tone`/`status`
+  prop, requires `source`, and gets absence wording from the API. `SearchHit`
+  carries no figure, so a result list cannot be sorted or coloured by one.
+  `tokens.css` contains no red/green pair. Consequence: if you need to render a
+  number, extend `Figure` — do not add a second path, and do not add a prop
+  that could carry a judgement.
+- **`front/src/content/copy.ts` is editorial content under the same human
+  review gate as the backend's `explanatory_content.py`.** Three strings there
+  name ranking in order to deny it and live in an audited `APPROVED_NEGATIONS`
+  allowlist in `tests/neutrality.test.ts`. Consequence: a new string containing
+  a forbidden word fails CI until a human reviews it and adds it deliberately.
 
 ## Workflow
 

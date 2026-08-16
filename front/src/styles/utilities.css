@@ -1,0 +1,14 @@
+/* Visible to screen readers, not on screen. Used where a state is conveyed
+   visually and must also be available non-visually — docs/13 §10 requires that
+   colour or position is never the only carrier of meaning. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,11 @@
+.header {
+  display: flex; flex-wrap: wrap; gap: var(--space-3);
+  align-items: baseline; justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--c-rule);
+}
+.brand { font-weight: 600; text-decoration: none; color: var(--c-ink); }
+.skip {
+  position: absolute; left: -9999px;
+}
+.skip:focus { left: var(--space-3); top: var(--space-3); background: var(--c-surface); padding: var(--space-2); z-index: 30; }
