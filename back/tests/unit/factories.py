@@ -62,6 +62,25 @@ def make_indicator_result(
     return IndicatorResult(**fields)
 
 
+# The offer-descriptor flags the directory publishes (Phase 2, ticket API-2).
+# `voie_*`, `section_*` and `segpa` arrive as the strings "0"/"1"; `ulis`
+# arrives as the integer 0/1 — see `flag_is_set`. Defaulted to "not set" so a
+# caller only has to override the flag(s) a given test is actually about.
+_OFFER_FLAG_DEFAULTS: dict[str, Any] = {
+    "voie_generale": "0",
+    "voie_technologique": "0",
+    "voie_professionnelle": "0",
+    "section_europeenne": "0",
+    "section_internationale": "0",
+    "section_sport": "0",
+    "section_arts": "0",
+    "section_cinema": "0",
+    "section_theatre": "0",
+    "ulis": 0,
+    "segpa": "0",
+}
+
+
 def directory_row(uai: str = "0750001A", **overrides: Any) -> dict[str, Any]:
     """A source directory row exactly as `DIRECTORY_FIELDS` expects it."""
     row: dict[str, Any] = {
@@ -78,6 +97,7 @@ def directory_row(uai: str = "0750001A", **overrides: Any) -> dict[str, Any]:
         "longitude": "2.35",
         "etat": "OUVERT",
         "date_maj_ligne": "2025-01-01T00:00:00+00:00",
+        **_OFFER_FLAG_DEFAULTS,
     }
     row.update(overrides)
     return row
