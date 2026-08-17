@@ -675,3 +675,48 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   (contredirait la décision d'architecture enregistrée, pour un gain nul face à
   quelques lignes de verrou).
 - **Réversibilité :** facile.
+
+### 2026-08-17 — Images de production, et pourquoi elles ne portent pas `--workers`
+- **Backend :** image multi-étapes (`python:3.12-slim`), utilisateur non root
+  (uid 10001), venv recopié depuis l'étape de build pour ne pas embarquer
+  l'outillage. Sonde de santé en `urllib` plutôt qu'en `curl` : l'image slim
+  n'a pas de curl, et en installer un pour une requête d'une ligne ajouterait
+  une surface pour rien.
+- **Pas de `--workers` :** chaque worker démarre son propre APScheduler, et le
+  `max_instances=1` d'APScheduler est propre au processus. Le verrou d'avis
+  rend désormais la situation sûre, mais les exécutions surnuméraires restent
+  inutiles : elles refusent toutes sauf une. À ce volume de lecture, un worker
+  suffit ; la montée en charge se fait au niveau conteneur, avec
+  `INGESTION_ENABLED` activé sur une seule instance.
+- **Étiquette et non empreinte pour l'image de base :** épingler par digest
+  ferait diverger l'image de `Dockerfile.dev` et imposerait un suivi de mises à
+  jour disproportionné pour un projet solo. À reconsidérer face à une exigence
+  réelle de chaîne d'approvisionnement — et à consigner alors, pas à subir.
+- **Frontend :** build Vite puis `nginxinc/nginx-unprivileged` (déjà non root
+  sur le port 8080, plutôt que de le reconfigurer à la main). Repli
+  `try_files $uri /index.html` : sans lui, un lien partagé ou imprimé —
+  précisément ce que F8 rend utile — renverrait 404 au premier chargement.
+- **Contrainte réelle, énoncée et non contournée :** Vite intègre
+  `VITE_API_BASE_URL` **au moment du build**. L'image encode donc l'hôte d'API
+  pour lequel elle a été construite et ne peut pas être promue telle quelle
+  d'un environnement à un autre. Le correctif habituel (un `env.js` substitué
+  au démarrage) est délibérément reporté : aucun second environnement n'existe
+  encore, et construire l'indirection d'abord reviendrait à en deviner la forme.
+
+### 2026-08-17 — `docker-compose.prod.yml` porte un `name` explicite
+- **Contexte :** Compose déduit le nom de projet du répertoire. Sans `name`, le
+  fichier de production partage donc son projet avec `docker-compose.yml`, et
+  ses services `backend`/`frontend` sont considérés comme **les mêmes** que ceux
+  de développement.
+- **Constat, observé et non supposé :** lancer la pile de production a recréé le
+  conteneur de développement `schools_frontend` et interrompu la pile locale.
+- **Décision :** `name: etablissements-en-clair-prod`. Les deux piles sont
+  désormais indépendantes.
+- **Autre écueil rencontré :** les ports 8100/8180 étaient déjà pris par un
+  projet sans rapport sur la même machine, et l'appel de santé a répondu depuis
+  *une autre application*. Rien à corriger dans le projet, mais cela rappelle
+  qu'un `/health` qui répond ne prouve pas que c'est le bon service qui répond.
+- **Pas de service `db` dans le fichier de production :** le critère de sortie
+  d'OPS-1 exige de pointer vers une base non locale « sans modification de
+  code ». L'omettre rend cela vrai par construction, plutôt que par la mémoire
+  de celui qui surcharge la variable.

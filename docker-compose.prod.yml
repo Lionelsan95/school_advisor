@@ -1,0 +1,56 @@
+# Production-shaped composition.
+#
+# Deliberately has NO `db` service. The exit criterion for OPS-1 is that the
+# images run "pointed at a non-local database, without code changes", and
+# leaving the database out is what makes that true by construction rather than
+# by remembering to override it. `DATABASE_URL` must be supplied from the
+# environment; it has no default, by design, so a missing one fails at startup.
+#
+# Not a deployment manifest. It exists to prove the production images build and
+# run, and to document the variables a real target must provide.
+#
+# `name` is not decoration. Compose derives the project name from the directory,
+# so without it this file shares a project with docker-compose.yml and its
+# `backend`/`frontend` services are treated as the SAME services — bringing this
+# up recreates and clobbers the running development containers. Observed
+# happening. A distinct project keeps the two stacks independent.
+name: etablissements-en-clair-prod
+
+services:
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    image: etablissements-en-clair-backend:latest
+    restart: unless-stopped
+    environment:
+      # Required, no default. Point this at the real database.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Off unless this is the one instance that should ingest. Several
+      # instances with it on would each schedule a run; the advisory lock keeps
+      # that safe, but only one of them would do any work.
+      INGESTION_ENABLED: ${INGESTION_ENABLED:-false}
+      INGESTION_HOUR_UTC: ${INGESTION_HOUR_UTC:-3}
+      # Optional. Without it the assistant returns its static "unavailable"
+      # message and every deterministic endpoint keeps working.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Optional. Where ingestion failures are announced (OPS-3).
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        # Baked into the bundle at build time — see front/Dockerfile.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL must be set}
+    image: etablissements-en-clair-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      - backend
