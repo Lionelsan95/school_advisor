@@ -28,23 +28,48 @@ from .commune_adapter import CommuneAdapter
 from .directory_adapter import DirectoryAdapter
 from .geo_api_client import GeoApiClient
 from .indicator_adapter import IndicatorAdapter
+from .locking import ingestion_lock
 from .ods_client import OdsClient
 
 logger = logging.getLogger(__name__)
 
 
-def run_ingestion_once(settings: Settings | None = None) -> IngestionReport:
+def run_ingestion_once(settings: Settings | None = None) -> IngestionReport | None:
     """Execute one full ingestion run and persist a record of it.
 
-    A failed run is recorded too, with its reason — a failure that leaves no
+    Returns None when another run already holds the ingestion lock, so this one
+    declined. A decline is not an attempt and is deliberately NOT recorded in
+    `ingestion_run`: that table answers "did the last run succeed", and filling
+    it with skipped runs would bury the answer.
+
+    A failed run *is* recorded, with its reason — a failure that leaves no
     trace is exactly the silent-breakage mode this project must avoid.
+
+    Overlapping runs are refused rather than queued because they corrupt the
+    rollback snapshot; see `locking.py` for why that is a correctness problem
+    and not merely wasted work.
     """
     settings = settings or get_settings()
     client = OdsClient(base_url=settings.ods_base_url)
     geo_client = GeoApiClient(base_url=settings.geo_api_base_url)
     started_at = datetime.now(UTC)
     try:
-        with psycopg.connect(settings.database_url) as connection:
+        with (
+            psycopg.connect(settings.database_url) as connection,
+            ingestion_lock(connection) as acquired,
+        ):
+            if not acquired:
+                # WARNING, not CRITICAL: declining is the lock working, not a
+                # fault. It is logged because a run silently not happening is
+                # its own kind of surprise.
+                logger.warning(
+                    "Ingestion skipped: another run already holds the lock. "
+                    "Overlapping runs are refused because the second one's "
+                    "snapshot would capture the first one's freshly loaded "
+                    "data, breaking rollback."
+                )
+                return None
+
             use_case = IngestPublicData(
                 directory_source=DirectoryAdapter(client),
                 indicator_source=IndicatorAdapter(client),
@@ -134,6 +159,8 @@ def start_scheduler(settings: Settings | None = None) -> BackgroundScheduler | N
 def _scheduled_run() -> None:
     """Wrapper so a failure never kills the scheduler thread silently."""
     try:
+        # A None return means another run held the lock; `run_ingestion_once`
+        # has already logged that, and there is nothing further to do.
         run_ingestion_once()
     except Exception:
         logger.critical("Scheduled ingestion run failed", exc_info=True)

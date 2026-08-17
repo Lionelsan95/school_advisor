@@ -329,6 +329,28 @@ reading the code.)*
   allowlist in `tests/neutrality.test.ts`. Consequence: a new string containing
   a forbidden word fails CI until a human reviews it and adds it deliberately.
 
+*(Added during Phase 6, 2026-08-17.)*
+
+- **Two ingestion runs must never overlap, and the reason is rollback, not
+  throughput.** Every full-reload repository snapshots its table with
+  `CREATE TABLE x_previous AS SELECT * FROM x` before truncating, and that
+  snapshot is what `--rollback` restores. If runs overlap, the second one's
+  snapshot captures the first's freshly loaded data as "previous", so a later
+  rollback restores the wrong state *and reports success*. Consequence:
+  `run_ingestion_once` takes a Postgres session-level advisory lock and returns
+  `None` when it cannot. It needs no unusual setup to hit — a manual
+  `python -m src.infrastructure.ingestion` racing the scheduled run does it
+  with a single worker.
+- **`APScheduler`'s `max_instances=1` is per-process, so it does not prevent
+  this.** Consequence: do not rely on it, and do not run the API with
+  `--workers N` expecting the scheduler to stay single — each worker starts its
+  own. The lock is what actually protects the data.
+- **A declined run is not recorded in `ingestion_run`.** That table answers
+  "did the last run succeed"; filling it with skipped runs would bury the
+  answer. Consequence: `run_ingestion_once` returning `None` is normal, and the
+  CLI exits 0 for it — a non-zero code would make a cron wrapper alert on
+  correct behaviour.
+
 ## Workflow
 
 Use these subagent chains depending on the size and nature of the change.

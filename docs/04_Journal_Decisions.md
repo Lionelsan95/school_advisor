@@ -639,3 +639,39 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   s'affiche en texte simple. Une définition est une aide ; son absence ne doit
   jamais retenir le chiffre qu'elle accompagne.
 - **Réversibilité :** facile.
+
+---
+
+## Décisions de la Phase 6 — Durcissement et préparation au déploiement
+
+### 2026-08-17 — Verrou d'avis Postgres autour de l'ingestion (correction de bug)
+- **Contexte :** tous les dépôts à rechargement complet prennent un instantané
+  (`CREATE TABLE x_previous AS SELECT * FROM x`) avant de tronquer. C'est cet
+  instantané que `--rollback` restaure.
+- **Bug :** si deux exécutions se chevauchent, l'instantané de la seconde
+  capture **les données fraîchement chargées par la première** comme état
+  « précédent ». Un rollback ultérieur restaure alors le mauvais état **en
+  annonçant un succès**. Le défaut ne se révèle qu'au moment où quelqu'un est
+  déjà en train de restaurer pendant un incident — le pire moment possible.
+- **Atteignable sans configuration inhabituelle :** un lancement manuel de
+  `python -m src.infrastructure.ingestion` pendant l'exécution planifiée suffit,
+  avec un seul worker. `max_instances=1` d'APScheduler est propre au processus
+  et ne protège pas de ce cas.
+- **Décision :** `pg_try_advisory_lock` au niveau session autour de tout le run.
+  Non bloquant : une seconde exécution refuse et le dit, plutôt que d'attendre
+  pour recharger ensuite des données que la première venait d'écrire.
+  `run_ingestion_once` renvoie `None` dans ce cas.
+- **Pourquoi un verrou d'avis plutôt qu'une ligne en table :** il est libéré
+  automatiquement à la mort de la session. Une ligne de verrouillage exigerait
+  une intervention humaine précisément quand personne n'a envie de lire cette
+  documentation.
+- **Un refus n'est pas une tentative :** il n'est pas enregistré dans
+  `ingestion_run`, dont le rôle est de répondre « la dernière exécution a-t-elle
+  réussi ». La CLI sort avec le code 0 — un code non nul ferait alerter un cron
+  sur un comportement correct.
+- **Alternatives écartées :** un seul worker documenté sans verrou (la
+  contrainte vivrait dans la configuration de déploiement, sans rien pour la
+  faire respecter) ; abandonner l'ordonnanceur en processus pour un cron externe
+  (contredirait la décision d'architecture enregistrée, pour un gain nul face à
+  quelques lignes de verrou).
+- **Réversibilité :** facile.

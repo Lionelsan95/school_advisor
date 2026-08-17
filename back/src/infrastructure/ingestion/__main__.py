@@ -72,6 +72,16 @@ def main(argv: list[str] | None = None) -> int:
         logger.critical("Ingestion did not complete. Nothing was published.")
         return 1
 
+    if report is None:
+        # Exit 0: declining is the lock doing its job, not a failure. A
+        # non-zero code here would make a cron wrapper alert on correct
+        # behaviour.
+        print(
+            "Ingestion skipped: another run is already in progress. "
+            "Nothing was changed."
+        )
+        return 0
+
     print(
         f"Ingestion succeeded in {report.duration_seconds:.1f}s — "
         f"{report.establishments_loaded} establishments, "
