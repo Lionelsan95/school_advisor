@@ -720,3 +720,37 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   d'OPS-1 exige de pointer vers une base non locale « sans modification de
   code ». L'omettre rend cela vrai par construction, plutôt que par la mémoire
   de celui qui surcharge la variable.
+
+### 2026-08-17 — Journalisation structurée et alerte par webhook (OPS-3)
+- **Contexte :** `docs/02_Architecture_Decisions.md` désigne la panne
+  silencieuse d'ingestion comme l'angle mort le plus critique du projet. Le seul
+  canal existant était une ligne de log CRITICAL dans un fichier que personne ne
+  regarde.
+- **Décision — webhook, pas courriel ni alerte fondée sur les logs :** `httpx`
+  est déjà une dépendance et `respx` le simule déjà dans les tests. Aucune
+  infrastructure ni paquet supplémentaire, et — argument décisif — le chemin est
+  **prouvable hors ligne**. Un chemin d'alerte qui ne peut être testé que contre
+  un service vivant est un chemin d'alerte que personne ne vérifie.
+- **Règle centrale : ne jamais aggraver la situation.** La notification est au
+  mieux secondaire par rapport à la panne qu'elle signale. Un webhook injoignable
+  ne doit pas masquer l'erreur d'origine, ni la remplacer par une autre, ni
+  interrompre une exécution par ailleurs réussie. `alerts.py` avale donc ses
+  exceptions et les journalise — le seul endroit du projet où avaler est le bon
+  comportement, précisément parce que ce qui serait perdu est déjà signalé par
+  l'appelant.
+- **Journalisation :** un unique `configure_logging`, appelé par l'API comme par
+  la CLI. Chacune appelait auparavant `basicConfig` avec ses propres arguments —
+  c'est ainsi qu'un déploiement finit avec des logs interrogeables d'un côté et
+  du texte brut de l'autre, ce qui est pire que l'un ou l'autre : une recherche
+  qui fonctionne pour les requêtes rate silencieusement l'ingestion.
+- **Réversibilité :** facile.
+
+### 2026-08-17 — Note d'hygiène : un commit a emporté des fichiers d'un autre lot
+- **Constat :** le commit `2b224ab` (OPS-4) a inclus `test_logging_config.py` et
+  `test_alerts.py`, qui appartiennent à OPS-3. Cause : un `git add -A` lancé
+  pendant qu'un agent de test écrivait dans le même arbre de travail.
+- **Conséquence :** aucune sur le code — les deux fichiers passent et sont au bon
+  endroit — mais l'historique attribue deux fichiers au mauvais lot. Consigné
+  plutôt que dissimulé.
+- **Leçon :** `git add -A` n'est pas sûr quand un travail concurrent écrit dans
+  le même arbre ; préférer un ajout par chemins explicites.

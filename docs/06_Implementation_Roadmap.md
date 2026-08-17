@@ -414,10 +414,45 @@ deployed yet.
 **Entry criteria:** Phase 5 exit criteria met.
 
 **Exit criteria:**
-- [ ] Production image builds and runs via `docker compose -f
-      docker-compose.prod.yml up` (or equivalent) pointed at a non-local
-      database, without code changes.
-- [ ] A deliberate ingestion failure (bad network, malformed source data) is
-      caught and alerted, not silently ignored.
-- [ ] Decision log (`docs/04_Journal_Decisions.md`) is up to date with every
+- [x] Production image builds and runs via `docker compose -f
+      docker-compose.prod.yml up` pointed at a non-local database, without code
+      changes. — both images build and report healthy, both run non-root
+      (uid 10001 / 101), the backend served a real 14-year fact sheet and the
+      SPA deep link resolved. **Partially verified:** the database was the
+      development Postgres reached over the host's LAN address — external to
+      the compose project, but not a managed remote instance. No cloud target
+      exists in this environment. Re-run against a real database before
+      deploying; see `docs/deployment-notes.md`, "Not verified".
+- [x] A deliberate ingestion failure (bad network, malformed source data) is
+      caught and alerted, not silently ignored. — `test_ingestion_job_alerting.py`
+      drives the real use case and the real alert function against fakes and a
+      mocked webhook, asserting the failure logs CRITICAL, the alert is posted
+      with the reason, and the original exception still propagates. A dead
+      webhook changes none of that and the `ingestion_run` failure row is still
+      written. **Not verified:** that a real Slack or email relay accepts the
+      payload shape.
+- [x] Decision log (`docs/04_Journal_Decisions.md`) is up to date with every
       structuring choice made during implementation.
+
+**Phase 6 closed on 2026-08-17.** 652 backend and 72 frontend tests pass; ruff,
+ruff format, strict mypy and oxlint clean.
+
+> **The most valuable find of the phase was a bug, not a ticket.** Overlapping
+> ingestion runs silently corrupted rollback: the second run's snapshot captured
+> the first's freshly loaded data as "previous", so a rollback restored the wrong
+> state *and reported success*. It needed no unusual setup — a manual CLI run
+> racing the scheduled one hits it with a single worker — and would only have
+> surfaced mid-incident. Fixed with a Postgres advisory lock.
+
+Two mistakes made during the phase, recorded because both are easy to repeat:
+bringing up the production stack **recreated a development container**, because
+Compose derives the project name from the directory and treated the two files'
+`backend`/`frontend` as the same services; and a `/health` check answered from an
+unrelated application already using the chosen port — a health endpoint that
+answers does not prove the right service answered.
+
+**Carried forward, deliberately not done:** the frontend image encodes its API
+host at build time (Vite inlines `VITE_API_BASE_URL`), so it cannot be promoted
+unmodified between environments with different APIs. The runtime-`env.js` fix is
+deferred until a second environment exists to promote across, rather than guessed
+at now.
