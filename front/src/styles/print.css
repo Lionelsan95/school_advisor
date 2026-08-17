@@ -1,0 +1,66 @@
+/**
+ * Print / save-as-PDF (F8).
+ *
+ * The acceptance criterion is that exported content carries F3, F6, F7 and F10
+ * *in full* — no shortened version that drops explanations or disclaimers. A
+ * stylesheet alone cannot deliver that: on screen only the explanation panel
+ * the reader opened exists in the DOM, so printing would silently omit the
+ * other five. The page therefore renders a print-only block containing every
+ * explanation unconditionally (see `FactSheetPage`), and this file reveals it.
+ *
+ * Deliberately not a second rendering template: a separate export view would
+ * be a second copy of reviewed content to keep in review-sync with the live
+ * page, which is the drift the home-page scope reminder already had to be
+ * protected from.
+ */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Chrome and Firefox omit backgrounds by default; the absence and caution
+     states rely on them, so state them again in ink that survives printing. */
+  :root {
+    --c-caution-surface: #fff;
+    --c-surface-sunken: #fff;
+  }
+
+  body {
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+  }
+
+  /* Navigation, controls and anything that cannot be acted on from paper. */
+  header nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  /* Explanations must not be split mid-block across pages: half a "ce que cela
+     ne mesure pas" is worse than none. */
+  section,
+  article,
+  aside {
+    break-inside: avoid;
+  }
+
+  /* Source URLs are the whole point of F10 on paper, where a link cannot be
+     clicked. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    word-break: break-all;
+  }
+
+  /* The scope reminder must survive to the printed page (F7). */
+  aside[aria-label="Portée des données"] {
+    border: 1px solid #000;
+  }
+}

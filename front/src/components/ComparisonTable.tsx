@@ -4,7 +4,7 @@ import type {
   Explanation,
   ResultYear,
 } from "../api/types";
-import { COMPARE, FACT_SHEET } from "../content/copy";
+import { FACT_SHEET } from "../content/copy";
 import { Figure } from "./Figure";
 import styles from "./ComparisonTable.module.css";
 
@@ -103,10 +103,10 @@ export function ComparisonTable({
                     // establishment, which is usually just IVAC starting later.
                     <p className={styles.yearAbsent}>
                       <span className={styles.yearAbsentTitle}>
-                        {yearAbsence?.titre ?? COMPARE.notPublishedForThis}
+                        {yearAbsence.titre}
                       </span>
                       <span className={styles.yearAbsentBody}>
-                        {yearAbsence?.definition_simple}
+                        {yearAbsence.definition_simple}
                       </span>
                     </p>
                   ) : (

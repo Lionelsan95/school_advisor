@@ -1,0 +1,19 @@
+.page { padding: var(--space-5) var(--space-4); max-width: 55rem; margin: 0 auto; }
+.title { font-size: var(--text-2xl); margin: 0 0 var(--space-2); }
+.intro { margin: 0 0 var(--space-4); max-width: var(--measure); color: var(--c-ink-muted); }
+.searchLabel { display: block; font-weight: 600; margin-bottom: var(--space-1); }
+.search {
+  width: 100%; max-width: 24rem; min-height: 44px; padding: 0 var(--space-3);
+  font: inherit; border: 1px solid var(--c-rule); border-radius: var(--radius);
+  margin-bottom: var(--space-5);
+}
+.list { margin: 0; }
+/* Uniform treatment: no entry is emphasised over another. */
+.entry { padding: var(--space-4) 0; border-bottom: 1px solid var(--c-rule); scroll-margin-top: var(--space-5); }
+.term { font-weight: 600; font-size: var(--text-lg); margin: 0 0 var(--space-2); }
+.body { margin: 0; }
+.definition { margin: 0 0 var(--space-2); max-width: var(--measure); }
+.example { margin: 0 0 var(--space-2); max-width: var(--measure); color: var(--c-ink-muted); font-size: var(--text-sm); }
+.source { margin: 0 0 var(--space-1); font-size: var(--text-sm); color: var(--c-ink-faint); }
+.related { margin: 0; font-size: var(--text-sm); }
+.empty { color: var(--c-ink-muted); }

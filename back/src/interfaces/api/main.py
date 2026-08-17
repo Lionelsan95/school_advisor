@@ -21,7 +21,7 @@ from src.infrastructure.ingestion.job import start_scheduler
 from src.infrastructure.llm.anthropic_interpreter import AnthropicQueryInterpreter
 from src.infrastructure.llm.interpretation_cache import InMemoryInterpretationCache
 from src.infrastructure.settings import get_cors_origins, get_settings
-from src.interfaces.api import assistant, communes, establishments
+from src.interfaces.api import assistant, communes, establishments, glossary
 
 logger = logging.getLogger(__name__)
 
@@ -119,3 +119,4 @@ def health() -> dict[str, str]:
 app.include_router(establishments.router)
 app.include_router(communes.router)
 app.include_router(assistant.router)
+app.include_router(glossary.router)

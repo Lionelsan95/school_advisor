@@ -567,3 +567,46 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
   doc 13 § 9 disent deux, et la maquette mobile de doc 13 suppose deux colonnes
   A/B. Les deux spécifications les plus détaillées l'emportent.
 - **Réversibilité :** coûteuse une fois le contrat publié.
+
+### 2026-08-16 — Approbation humaine du contenu éditorial de la Phase 5
+- **Contexte :** la Phase 5 introduit une quantité importante de contenu
+  éditorial nouveau, montré tel quel aux lecteurs. Comme
+  `explanatory_content.py` (entrée du 15/08) et `assistant_content.py` (même
+  date), il relève de l'étape de revue humaine explicite prévue par
+  `CLAUDE.md`.
+- **Contenu relu et approuvé par le propriétaire du projet, version 1 :**
+  - `back/src/domain/glossary_content.py` — 16 termes. Cinq sont **dérivés**
+    des blocs `ExplanatoryContent` existants (une seule rédaction de « ce
+    qu'est la valeur ajoutée », pas deux qui divergeraient) ; onze sont
+    nouvellement rédigés : UAI, DEPP, IVAC, IVAL, annuaire, secteur, filière,
+    ULIS, SEGPA, seuil de diffusion, valeur non disponible.
+  - `back/src/domain/explanatory_content.py` — nouveau bloc
+    `YEAR_NOT_PUBLISHED` (`annee_non_publiee`), distinct de `ABSENT_VALUE`.
+  - `back/src/domain/methodology_break.py` — note de rupture 2021.
+  - `front/src/content/copy.ts` — sections HISTORY, COMPARE, GLOSSARY, SHARE.
+- **Deux formulations méritent d'être signalées, car elles sont les plus
+  proches de la règle F6 :** `seuil_de_diffusion` précise explicitement qu'il
+  n'est **pas** le seul motif d'absence (la DEPP en documente trois, et
+  l'export ouvert n'indique jamais lequel s'applique) ; `valeur_non_disponible`
+  répète qu'une absence ne permet aucune conclusion. Un test interdit par
+  ailleurs tout verbe de conseil (choisir, éviter, privilégier, conseiller)
+  dans l'ensemble du glossaire.
+- **Réversibilité :** facile côté texte ; le `version` de chaque entrée permet
+  de détecter une modification ultérieure non relue.
+
+### 2026-08-16 — Un export abrégé est un export non conforme
+- **Contexte :** la page de comparaison n'imprimait que trois des six parties
+  exigées par la charte (§ 4) pour chaque explication, là où la fiche en
+  imprimait six. Elle perdait `comment_lire` et `methode` — soit, pour une
+  absence, les phrases disant qu'elle « ne signifie ni un résultat élevé, ni un
+  résultat faible » et qu'aucune valeur n'est jamais substituée.
+- **Constat :** aucune alerte. Les tests d'impression ne couvraient que la
+  fiche ; la seconde surface n'était pas testée du tout.
+- **Décision :** rendre les deux blocs d'impression identiques, et tester la
+  comparaison en affirmant qu'elle imprime **les mêmes** six parties que la
+  fiche, plutôt que de les comparer à une liste écrite à la main qui pourrait
+  dériver à son tour. Vérifié par mutation : le retrait du correctif fait
+  échouer exactement les deux nouveaux tests.
+- **Leçon retenue :** un critère d'acceptation formulé « intégralement » exige
+  un test par surface d'export, pas un test par fonctionnalité.
+- **Réversibilité :** sans objet — correction.

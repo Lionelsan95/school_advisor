@@ -6,7 +6,8 @@ import { ErrorState } from "../components/ErrorState";
 import { ExplanationPanel } from "../components/ExplanationPanel";
 import { Figure } from "../components/Figure";
 import { ScopeDisclaimer } from "../components/ScopeDisclaimer";
-import { FACT_SHEET, HISTORY, SEARCH } from "../content/copy";
+import { ShareActions } from "../components/ShareActions";
+import { FACT_SHEET, HISTORY, SEARCH, SHARE } from "../content/copy";
 import { useApiResource } from "../hooks/useApiResource";
 import styles from "./FactSheetPage.module.css";
 
@@ -127,6 +128,8 @@ export function FactSheetPage() {
 
       <ScopeDisclaimer text={sheet.rappel_de_portee} />
 
+      <ShareActions label={SHARE.label} />
+
       {sheet.identite.sites.length > 1 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>{FACT_SHEET.sitesHeading}</h2>
@@ -199,6 +202,27 @@ export function FactSheetPage() {
           )}
         </p>
       )}
+
+      {/* F8 — every explanation, unconditionally, hidden on screen and
+          revealed when printing. Without this the printed page would carry
+          only whichever panel the reader happened to have open, which is
+          exactly the "shortened version dropping explanations" the ticket
+          forbids. */}
+      <section className="print-only">
+        <h2>{SHARE.explanationsHeading}</h2>
+        {Object.values(sheet.explications).map((block) => (
+          <article key={block.content_id}>
+            <h3>{block.titre}</h3>
+            <p>{block.definition_simple}</p>
+            <p>{block.comment_lire}</p>
+            <p>{block.ce_que_cela_mesure}</p>
+            <p>{block.ce_que_cela_ne_mesure_pas}</p>
+            {block.methode && <p>{block.methode}</p>}
+            <p>{block.source}</p>
+          </article>
+        ))}
+        <p>{SHARE.printedOn(new Date().toLocaleDateString("fr-FR"))}</p>
+      </section>
 
       {openExplanation && (
         <ExplanationPanel

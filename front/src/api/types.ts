@@ -253,3 +253,19 @@ export interface CompareResponse {
   explications: Record<string, Explanation>;
   rappel_de_portee: string;
 }
+
+/** One glossary entry (F9). `termes_associes` carries ids, never prose. */
+export interface GlossaryTerm {
+  term_id: string;
+  terme: string;
+  definition: string;
+  exemple: string | null;
+  source: string;
+  termes_associes: string[];
+}
+
+export interface GlossaryResponse {
+  version: number;
+  termes: GlossaryTerm[];
+  rappel_de_portee: string;
+}

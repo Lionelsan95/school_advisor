@@ -29,7 +29,7 @@ from src.application.get_establishment_history import EstablishmentHistory
 from src.application.ports import SearchCriteria
 from src.application.search_communes import CommuneSearchResults
 from src.application.search_establishments import EstablishmentSearchResponse
-from src.domain import assistant_content
+from src.domain import assistant_content, glossary_content
 from src.domain import explanatory_content as content
 from src.domain.establishment import Establishment
 from src.domain.methodology_break import MethodologyBreak
@@ -288,6 +288,53 @@ class CompareOut(BaseModel):
                 block.content_id: ExplanationOut.of(block)
                 for block in (*_FACT_SHEET_EXPLANATIONS, content.YEAR_NOT_PUBLISHED)
             },
+            rappel_de_portee=content.SCOPE_DISCLAIMER,
+        )
+
+
+class GlossaryTermOut(BaseModel):
+    """One glossary entry.
+
+    `termes_associes` carries ids, not prose, so the frontend links terms
+    without any of them having to embed markup in reviewed text.
+    """
+
+    term_id: str
+    terme: str
+    definition: str
+    exemple: str | None
+    source: str
+    termes_associes: list[str]
+
+    @classmethod
+    def of(cls, term: glossary_content.GlossaryTerm) -> GlossaryTermOut:
+        return cls(
+            term_id=term.term_id,
+            terme=term.term,
+            definition=term.definition,
+            exemple=term.example,
+            source=term.source_note,
+            termes_associes=list(term.related_term_ids),
+        )
+
+
+class GlossaryOut(BaseModel):
+    """The whole glossary, alphabetical. Static content — no query parameters.
+
+    Returned in full rather than paginated or searchable server-side: it is a
+    few dozen short entries, and shipping it whole lets the frontend link a
+    term inline without a request per term.
+    """
+
+    version: int
+    termes: list[GlossaryTermOut]
+    rappel_de_portee: str = Field(default=content.SCOPE_DISCLAIMER)
+
+    @classmethod
+    def of(cls) -> GlossaryOut:
+        return cls(
+            version=glossary_content.GLOSSARY_CONTENT_VERSION,
+            termes=[GlossaryTermOut.of(term) for term in glossary_content.ALL_TERMS],
             rappel_de_portee=content.SCOPE_DISCLAIMER,
         )
 

@@ -26,7 +26,7 @@ from src.application.assistant_search import (
     AssistantSearchUnavailable,
     UnavailableReason,
 )
-from src.domain import assistant_content
+from src.domain import assistant_content, glossary_content
 from src.domain import explanatory_content as content
 from src.domain.methodology_break import IVAL_BACCALAUREAT_REFORM
 from src.interfaces.api.assistant import _MISSING_ASSISTANT_SOURCE_MESSAGE
@@ -322,3 +322,41 @@ class TestYearNotPublishedContentIsScannedAndNeverImpliesADeficiency:
         # one's, and not the one placed alongside it in the comparison.
         assert "ne dit rien des résultats" in what_it_does_not_measure
         assert "établissement placé à côté" in what_it_does_not_measure
+
+
+class TestGlossaryContentIsNeutral:
+    """F9 — the glossary is new user-facing editorial content.
+
+    A definition explains what a word means. It must never say whether the
+    thing it names is desirable, which is easy to slip into when defining
+    something like "valeur ajoutée".
+    """
+
+    def test_no_forbidden_word_in_any_term(self) -> None:
+        for term in glossary_content.ALL_TERMS:
+            for field in (term.term, term.definition, term.source_note, term.example):
+                if field is None:
+                    continue
+                match = _FORBIDDEN_PATTERN.search(field)
+                assert match is None, (
+                    f"{term.term_id}: {match.group(0) if match else ''}"
+                )
+
+    def test_no_term_recommends_or_advises(self) -> None:
+        advisory = re.compile(
+            r"\b(?:choisir|choisissez|privil[ée]gi|[ée]viter|conseill)", re.IGNORECASE
+        )
+        for term in glossary_content.ALL_TERMS:
+            body = " ".join(
+                part for part in (term.definition, term.example) if part is not None
+            )
+            assert advisory.search(body) is None, term.term_id
+
+    def test_the_absence_term_still_attributes_no_cause(self) -> None:
+        """Same rule as the F6 block: absence is stated, never explained away."""
+        term = glossary_content.get_term("valeur_non_disponible")
+        body = f"{term.definition} {term.example or ''}"
+
+        assert "ne permet aucune conclusion" in body
+        # It may mention that reasons exist; it must not pick one.
+        assert "parce que" not in body.lower()

@@ -217,5 +217,28 @@ export const COMPARE = {
   clear: "Vider la sélection",
   needTwo: "Sélectionnez deux établissements pour les comparer.",
   yearColumn: "Année",
-  notPublishedForThis: "Année non publiée",
+};
+
+/** Glossary (F9). Definitions come from the API; these are the page's chrome. */
+export const GLOSSARY = {
+  heading: "Glossaire",
+  intro:
+    "Les termes employés dans ce service, définis à partir des publications " +
+    "officielles.",
+  filterLabel: "Filtrer les termes",
+  noMatch: "Aucun terme ne correspond à cette recherche.",
+  related: "Voir aussi :",
+};
+
+/**
+ * Share and export (F8). The labels describe the actual mechanism: printing
+ * opens the browser dialog, and the "link" is the page's own stable URL.
+ */
+export const SHARE = {
+  label: "Partager ou exporter",
+  copyLink: "Copier le lien",
+  copied: "Lien copié",
+  print: "Imprimer ou enregistrer en PDF",
+  printedOn: (date: string) => `Page consultée le ${date}.`,
+  explanationsHeading: "Définitions des indicateurs",
 };
