@@ -21,9 +21,9 @@ from src.domain.dataset_ids import DATASET_IVAC, DATASET_IVAL_GT
 from src.infrastructure.settings import get_settings
 from src.interfaces.api.main import app
 from tests.integration.conftest import database_name
-from tests.integration.test_establishments_api import (
-    _insert_establishment,
-    _insert_indicator,
+from tests.integration.helpers import (
+    insert_establishment,
+    insert_indicator,
 )
 
 pytestmark = pytest.mark.integration
@@ -103,10 +103,10 @@ class TestUnionOfYearsEndToEnd:
         lycee_uai = "9999921A"
         college_uai = "9999922B"
         seeded_uais.extend([lycee_uai, college_uai])
-        _insert_establishment(db_connection, lycee_uai, type_="lycee")
-        _insert_establishment(db_connection, college_uai, type_="college")
+        insert_establishment(db_connection, lycee_uai, type_="lycee")
+        insert_establishment(db_connection, college_uai, type_="college")
         for year in range(2019, 2024):
-            _insert_indicator(
+            insert_indicator(
                 db_connection,
                 lycee_uai,
                 year,
@@ -114,7 +114,7 @@ class TestUnionOfYearsEndToEnd:
                 sector="public",
             )
         for year in (2022, 2023):
-            _insert_indicator(
+            insert_indicator(
                 db_connection,
                 college_uai,
                 year,

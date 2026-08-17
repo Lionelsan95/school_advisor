@@ -22,9 +22,9 @@ from src.domain.dataset_ids import DATASET_IVAC, DATASET_IVAL_GT
 from src.infrastructure.settings import get_settings
 from src.interfaces.api.main import app
 from tests.integration.conftest import database_name
-from tests.integration.test_establishments_api import (
-    _insert_establishment,
-    _insert_indicator,
+from tests.integration.helpers import (
+    insert_establishment,
+    insert_indicator,
 )
 
 pytestmark = pytest.mark.integration
@@ -96,9 +96,9 @@ class TestIvalGtHistorySpanningTheReform:
     ) -> None:
         uai = "9999911A"
         seeded_uais.append(uai)
-        _insert_establishment(db_connection, uai, type_="lycee")
+        insert_establishment(db_connection, uai, type_="lycee")
         for year in (2019, 2020, 2021, 2022, 2023):
-            _insert_indicator(
+            insert_indicator(
                 db_connection, uai, year, indicator_type="IVAL_GT", sector="public"
             )
 
@@ -127,9 +127,9 @@ class TestIvacOnlyHistoryNeverCarriesTheBreak:
     ) -> None:
         uai = "9999912B"
         seeded_uais.append(uai)
-        _insert_establishment(db_connection, uai, type_="college")
+        insert_establishment(db_connection, uai, type_="college")
         for year in (2022, 2023, 2024, 2025):
-            _insert_indicator(
+            insert_indicator(
                 db_connection, uai, year, indicator_type="IVAC", sector="public"
             )
 
@@ -156,9 +156,9 @@ class TestEveryPointCarriesASource:
     ) -> None:
         uai = "9999913C"
         seeded_uais.append(uai)
-        _insert_establishment(db_connection, uai, type_="lycee")
-        _insert_indicator(db_connection, uai, 2022, indicator_type="IVAL_GT")
-        _insert_indicator(db_connection, uai, 2023, indicator_type="IVAL_GT")
+        insert_establishment(db_connection, uai, type_="lycee")
+        insert_indicator(db_connection, uai, 2022, indicator_type="IVAL_GT")
+        insert_indicator(db_connection, uai, 2023, indicator_type="IVAL_GT")
 
         response = client.get(f"/establishments/{uai}/history")
 

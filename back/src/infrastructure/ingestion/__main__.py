@@ -18,6 +18,7 @@ import sys
 
 import psycopg
 
+from src.infrastructure.logging_config import configure_logging
 from src.infrastructure.persistence.repositories import (
     PostgresCommuneRepository,
     PostgresEstablishmentRepository,
@@ -43,10 +44,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level,
-        format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-    )
+    # Same configuration as the API (OPS-3). Previously each entry point called
+    # basicConfig with its own arguments, which is how a deployment ends up with
+    # queryable logs from one path and bare text from the other.
+    configure_logging(settings.log_level, settings.log_format)
 
     if args.rollback:
         with (

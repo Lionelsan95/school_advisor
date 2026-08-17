@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     ingestion_hour_utc: int = 3
 
     log_level: str = "INFO"
+    # "json" in production so lines are queryable; "text" locally so they are
+    # readable. A format is a deployment concern, not a property of the code.
+    log_format: str = "text"
+
+    # Where an ingestion failure is announced (OPS-3). Optional: without it the
+    # CRITICAL log and the `ingestion_run` row remain, so a deployment with no
+    # webhook is degraded, not broken.
+    alert_webhook_url: str | None = None
 
 
 class CorsSettings(BaseSettings):

@@ -20,6 +20,7 @@ from psycopg_pool import ConnectionPool
 from src.infrastructure.ingestion.job import start_scheduler
 from src.infrastructure.llm.anthropic_interpreter import AnthropicQueryInterpreter
 from src.infrastructure.llm.interpretation_cache import InMemoryInterpretationCache
+from src.infrastructure.logging_config import configure_logging
 from src.infrastructure.settings import get_cors_origins, get_settings
 from src.interfaces.api import assistant, communes, establishments, glossary
 
@@ -46,7 +47,7 @@ def _configure_read_connection(connection: psycopg.Connection) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    logging.basicConfig(level=settings.log_level)
+    configure_logging(settings.log_level, settings.log_format)
     interpretation_cache = InMemoryInterpretationCache(
         max_entries=settings.assistant_cache_max_entries,
         ttl_seconds=settings.assistant_cache_ttl_seconds,

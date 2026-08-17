@@ -24,6 +24,7 @@ from src.infrastructure.persistence.repositories import (
 )
 from src.infrastructure.settings import Settings, get_settings
 
+from .alerts import send_ingestion_failure_alert
 from .commune_adapter import CommuneAdapter
 from .directory_adapter import DirectoryAdapter
 from .geo_api_client import GeoApiClient
@@ -104,6 +105,14 @@ def run_ingestion_once(settings: Settings | None = None) -> IngestionReport | No
                 )
                 with psycopg.connect(settings.database_url) as audit_connection:
                     _record_run(audit_connection, failed)
+                # Best-effort and strictly secondary: this cannot raise, and a
+                # dead webhook must not become the error a reader sees instead
+                # of the failure that prompted it. See alerts.py.
+                send_ingestion_failure_alert(
+                    settings.alert_webhook_url,
+                    reason=failed.failure_reason or "unknown",
+                    started_at=started_at.isoformat(),
+                )
                 raise
             return report
     finally:
