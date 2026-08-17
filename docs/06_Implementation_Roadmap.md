@@ -350,8 +350,45 @@ Also carried forward, unchanged: production images remain a Phase 6 concern
 
 **Exit criteria:**
 - [ ] All 10 features from `docs/01_Vision_Produit.md` are implemented and
-      pass the neutrality checklist.
-- [ ] Exported fact sheets contain the same disclaimers as the live version.
+      pass the neutrality checklist. — **F5, F4 and F8 done; F9 partial.**
+      `neutrality-checker` reviewed all three and answered "non" to all seven
+      of the charter's §14 questions. F9 is the exception: the glossary page and
+      its internal cross-links exist, but FE-7 also requires every technical
+      term used elsewhere in the UI to link to its definition, and those inline
+      links are not built. Only the top-nav link exists.
+- [x] Exported fact sheets contain the same disclaimers as the live version. —
+      both the fact sheet and the comparison page render every explanation
+      unconditionally in a print-only block, and a test asserts the comparison
+      prints the *same* six charter-mandated parts as the fact sheet.
+
+**Phase 5 substantially complete on 2026-08-16; F9 remains open.**
+
+Delivered: the history chart with the 2021 rupture drawn as a break in the
+line (API-7/FE-4), side-by-side comparison with rows aligned server-side so no
+client can difference them (API-8/FE-5), export and share via a print
+stylesheet (API-9/FE-6), and the glossary endpoint and page (API-10, FE-7
+partial). 622 backend and 68 frontend tests pass; both CI workflows green on
+`cef545d`.
+
+> **Two defects worth remembering, both found by review rather than by tests.**
+> The comparison page printed three of the six mandatory explanation parts
+> while the fact sheet printed six — an abridged export, which the F8 criterion
+> forbids in those words. Nothing caught it because the print tests only
+> covered one of the two export surfaces. Lesson: a criterion phrased "in full"
+> needs a test per export surface, not per feature.
+>
+> Separately, a blanket forbidden-token scan on the comparison response failed
+> on the project's own vocabulary: "écart" appears legitimately in the DEPP's
+> definition of value added (observed minus *expected*). The checks now ban
+> those tokens on keys anywhere, exempt the `explications` block, and
+> separately assert that block is byte-identical to what the fact sheet serves.
+
+**Remaining for F9:** inline glossary links from the fact sheet, comparison and
+history screens. Deliberately not faked by scanning reviewed prose for term
+strings and injecting markup — that would put generated markup inside
+human-reviewed content. The intended approach is to wrap the enumerable call
+sites (indicator labels, `filieres`, `sections`, `type_indicateur`) in a
+`GlossaryTerm` component.
 
 ---
 
