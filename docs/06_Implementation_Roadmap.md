@@ -349,26 +349,27 @@ Also carried forward, unchanged: production images remain a Phase 6 concern
 **Entry criteria:** Phase 4 exit criteria met.
 
 **Exit criteria:**
-- [ ] All 10 features from `docs/01_Vision_Produit.md` are implemented and
-      pass the neutrality checklist. — **F5, F4 and F8 done; F9 partial.**
-      `neutrality-checker` reviewed all three and answered "non" to all seven
-      of the charter's §14 questions. F9 is the exception: the glossary page and
-      its internal cross-links exist, but FE-7 also requires every technical
-      term used elsewhere in the UI to link to its definition, and those inline
-      links are not built. Only the top-nav link exists.
+- [x] All 10 features from `docs/01_Vision_Produit.md` are implemented and
+      pass the neutrality checklist. — `neutrality-checker` reviewed F5, F4, F8
+      and F9 and answered "non" to all seven of the charter's §14 questions.
+      F9's inline term links were completed after that review: indicator
+      labels, `filieres`, `sections` and `type_indicateur` are wrapped in a
+      `GlossaryTerm` component, and every value the UI actually shows now
+      resolves to a definition (verified against real data — the sections on a
+      live fact sheet were `europeenne`, `sport`, `arts`, none of which had an
+      entry until six were added).
 - [x] Exported fact sheets contain the same disclaimers as the live version. —
       both the fact sheet and the comparison page render every explanation
       unconditionally in a print-only block, and a test asserts the comparison
       prints the *same* six charter-mandated parts as the fact sheet.
 
-**Phase 5 substantially complete on 2026-08-16; F9 remains open.**
+**Phase 5 closed on 2026-08-16.**
 
 Delivered: the history chart with the 2021 rupture drawn as a break in the
 line (API-7/FE-4), side-by-side comparison with rows aligned server-side so no
 client can difference them (API-8/FE-5), export and share via a print
-stylesheet (API-9/FE-6), and the glossary endpoint and page (API-10, FE-7
-partial). 622 backend and 68 frontend tests pass; both CI workflows green on
-`cef545d`.
+stylesheet (API-9/FE-6), and the glossary with inline term links
+(API-10/FE-7). 622 backend and 72 frontend tests pass.
 
 > **Two defects worth remembering, both found by review rather than by tests.**
 > The comparison page printed three of the six mandatory explanation parts
@@ -383,12 +384,13 @@ partial). 622 backend and 68 frontend tests pass; both CI workflows green on
 > those tokens on keys anywhere, exempt the `explications` block, and
 > separately assert that block is byte-identical to what the fact sheet serves.
 
-**Remaining for F9:** inline glossary links from the fact sheet, comparison and
-history screens. Deliberately not faked by scanning reviewed prose for term
-strings and injecting markup — that would put generated markup inside
-human-reviewed content. The intended approach is to wrap the enumerable call
-sites (indicator labels, `filieres`, `sections`, `type_indicateur`) in a
-`GlossaryTerm` component.
+**On F9's inline links:** deliberately not implemented by scanning reviewed
+prose for term names and injecting markup — that would put generated markup
+inside human-reviewed content, and would link the same word differently
+depending on where it appeared. The enumerable call sites are wrapped
+explicitly instead. If the glossary cannot be fetched, terms render as plain
+text: a definition is an aid, and its absence must never withhold the figure
+beside it.
 
 ---
 

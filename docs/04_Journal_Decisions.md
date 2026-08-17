@@ -610,3 +610,32 @@ Ajoute une entrée à chaque fois que tu trancises un point qui pourrait être r
 - **Leçon retenue :** un critère d'acceptation formulé « intégralement » exige
   un test par surface d'export, pas un test par fonctionnalité.
 - **Réversibilité :** sans objet — correction.
+
+### 2026-08-16 — Approbation humaine : termes de sections et libellés de glossaire
+- **Contenu relu et approuvé par le propriétaire du projet, version 1 :** six
+  termes de glossaire décrivant les sections (européenne, internationale,
+  sportive, arts, cinéma, théâtre), plus deux libellés d'interface
+  (`GLOSSARY.defineTerm`, `GLOSSARY.exampleHeading`).
+- **Contexte :** la couverture était incomplète. Les sections réellement
+  présentes sur une fiche (europeenne, sport, arts) n'avaient aucune
+  définition ; seuls ULIS et SEGPA en avaient. Le critère de FE-7 exige que
+  *chaque* terme technique affiché renvoie à sa définition.
+- **Point de vigilance :** chaque définition décrit ce qu'*est* une section,
+  jamais l'avantage qu'il y aurait à en bénéficier. Les tests interdisant les
+  mots évaluatifs et les verbes de conseil couvrent l'ensemble du glossaire.
+
+### 2026-08-16 — Les liens de glossaire enveloppent des emplacements décidés, pas un texte scanné
+- **Contexte :** FE-7 demande que chaque terme technique de l'interface renvoie
+  à sa définition.
+- **Décision :** envelopper explicitement les emplacements énumérables
+  (libellés d'indicateurs, `filieres`, `sections`, `type_indicateur`) dans un
+  composant `GlossaryTerm`.
+- **Alternative écartée :** parcourir le texte affiché à la recherche des noms
+  de termes pour y injecter des liens. Écartée pour deux raisons : cela
+  placerait du balisage généré **à l'intérieur d'un contenu éditorial relu par
+  un humain** — précisément la dérive que la revue existe pour empêcher — et le
+  même mot serait lié différemment selon l'endroit où il apparaît.
+- **Dégradation choisie :** si le glossaire n'est pas récupérable, le libellé
+  s'affiche en texte simple. Une définition est une aide ; son absence ne doit
+  jamais retenir le chiffre qu'elle accompagne.
+- **Réversibilité :** facile.

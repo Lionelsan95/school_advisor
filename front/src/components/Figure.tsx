@@ -1,5 +1,6 @@
 import type { Explanation, Figure as FigureData, Source } from "../api/types";
 import { FACT_SHEET } from "../content/copy";
+import { GlossaryTerm } from "./GlossaryTerm";
 import { SourceLink } from "./SourceLink";
 import styles from "./Figure.module.css";
 
@@ -29,6 +30,8 @@ export interface FigureProps {
   year: number;
   /** The static block explaining this indicator, from `FactSheet.explications`. */
   explanation: Explanation;
+  /** Glossary entry id for this indicator, when one exists. */
+  glossaryTermId?: string;
   /** The block explaining what an absent value means, from the same source. */
   absenceExplanation: Explanation;
   source: Source;
@@ -55,6 +58,7 @@ export function Figure({
   unit,
   year,
   explanation,
+  glossaryTermId,
   absenceExplanation,
   source,
   onExplain,
@@ -65,7 +69,11 @@ export function Figure({
   return (
     <div className={styles.figure}>
       <dt className={styles.label}>
-        {label}
+        {glossaryTermId ? (
+          <GlossaryTerm termId={glossaryTermId}>{label}</GlossaryTerm>
+        ) : (
+          label
+        )}
         <button
           type="button"
           className={styles.explainButton}

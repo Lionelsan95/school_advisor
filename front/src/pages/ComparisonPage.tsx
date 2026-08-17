@@ -5,6 +5,7 @@ import type { Explanation } from "../api/types";
 import { ComparisonTable } from "../components/ComparisonTable";
 import { ErrorState } from "../components/ErrorState";
 import { ExplanationPanel } from "../components/ExplanationPanel";
+import { explanationSections } from "../components/explanationSections";
 import { ScopeDisclaimer } from "../components/ScopeDisclaimer";
 import { ShareActions } from "../components/ShareActions";
 import { COMPARE, SEARCH, SHARE } from "../content/copy";
@@ -96,7 +97,8 @@ export function ComparisonPage() {
 
       {openExplanation && (
         <ExplanationPanel
-          explanation={openExplanation}
+          title={openExplanation.titre}
+          sections={explanationSections(openExplanation)}
           onClose={() => setOpenExplanation(null)}
         />
       )}

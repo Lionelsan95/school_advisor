@@ -119,6 +119,7 @@ export function ComparisonTable({
                           unit={indicator.unit}
                           year={row.annee}
                           explanation={explanations[indicator.explanationId]}
+                          glossaryTermId={indicator.explanationId}
                           absenceExplanation={absence}
                           source={cell.resultat!.source}
                           onExplain={onExplain}

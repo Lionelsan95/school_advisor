@@ -171,6 +171,66 @@ _AUTHORED: Final = (
         related_term_ids=("annuaire", "ival"),
     ),
     GlossaryTerm(
+        term_id="europeenne",
+        term="Section européenne",
+        definition=(
+            "Une section européenne ou de langue orientale propose un "
+            "enseignement linguistique renforcé et l'étude d'une discipline "
+            "non linguistique dans cette langue."
+        ),
+        source_note="Annuaire de l'éducation.",
+        related_term_ids=("internationale",),
+    ),
+    GlossaryTerm(
+        term_id="internationale",
+        term="Section internationale",
+        definition=(
+            "Une section internationale accueille des élèves français et "
+            "étrangers et propose un enseignement partagé avec un système "
+            "éducatif partenaire."
+        ),
+        source_note="Annuaire de l'éducation.",
+        related_term_ids=("europeenne",),
+    ),
+    GlossaryTerm(
+        term_id="sport",
+        term="Section sportive",
+        definition=(
+            "Une section sportive scolaire permet de pratiquer une discipline "
+            "sportive de façon approfondie dans le cadre de la scolarité."
+        ),
+        source_note="Annuaire de l'éducation.",
+    ),
+    GlossaryTerm(
+        term_id="arts",
+        term="Section arts",
+        definition=(
+            "Un enseignement artistique renforcé proposé dans le cadre de la "
+            "scolarité, en complément du programme commun."
+        ),
+        source_note="Annuaire de l'éducation.",
+        related_term_ids=("cinema", "theatre"),
+    ),
+    GlossaryTerm(
+        term_id="cinema",
+        term="Section cinéma",
+        definition=(
+            "Un enseignement de cinéma et audiovisuel proposé dans le cadre "
+            "de la scolarité."
+        ),
+        source_note="Annuaire de l'éducation.",
+        related_term_ids=("arts",),
+    ),
+    GlossaryTerm(
+        term_id="theatre",
+        term="Section théâtre",
+        definition=(
+            "Un enseignement de théâtre proposé dans le cadre de la scolarité."
+        ),
+        source_note="Annuaire de l'éducation.",
+        related_term_ids=("arts",),
+    ),
+    GlossaryTerm(
         term_id="ulis",
         term="ULIS",
         definition=(

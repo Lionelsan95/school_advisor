@@ -1,20 +1,25 @@
 import { useEffect, useRef } from "react";
-import type { Explanation } from "../api/types";
-import { EXPLANATION_SECTIONS, FACT_SHEET } from "../content/copy";
+import { FACT_SHEET } from "../content/copy";
 import styles from "./ExplanationPanel.module.css";
 
 /**
- * Renders one static explanatory block in the six parts docs/14 §4 requires.
+ * Renders a titled set of explanatory sections.
  *
- * Every string displayed comes from the API. This component chooses layout,
- * never wording — the headings below are the only text it contributes, and
- * they are structural labels rather than commentary on any value.
+ * Takes already-assembled [heading, body] pairs rather than an `Explanation`,
+ * so an indicator block and a glossary term can share one panel instead of two
+ * components with the same CSS drifting apart. Callers supply the headings from
+ * `copy.ts`; this component chooses layout and never wording.
+ *
+ * Every body string comes from the API.
  */
 export function ExplanationPanel({
-  explanation,
+  title,
+  sections,
   onClose,
 }: {
-  explanation: Explanation;
+  title: string;
+  /** [heading, body] pairs. A null body is skipped. */
+  sections: Array<[string, string | null]>;
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -28,15 +33,6 @@ export function ExplanationPanel({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const sections: Array<[string, string | null]> = [
-    [EXPLANATION_SECTIONS.definition, explanation.definition_simple],
-    [EXPLANATION_SECTIONS.howToRead, explanation.comment_lire],
-    [EXPLANATION_SECTIONS.measures, explanation.ce_que_cela_mesure],
-    [EXPLANATION_SECTIONS.doesNotMeasure, explanation.ce_que_cela_ne_mesure_pas],
-    [EXPLANATION_SECTIONS.method, explanation.methode],
-    [EXPLANATION_SECTIONS.source, explanation.source],
-  ];
-
   return (
     <div
       className={styles.panel}
@@ -46,7 +42,7 @@ export function ExplanationPanel({
     >
       <div className={styles.header}>
         <h2 id="explanation-title" className={styles.title}>
-          {explanation.titre}
+          {title}
         </h2>
         <button
           ref={closeRef}

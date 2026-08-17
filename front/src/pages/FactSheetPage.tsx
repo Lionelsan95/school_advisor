@@ -4,7 +4,9 @@ import { getFactSheet } from "../api/establishments";
 import type { Explanation, ResultYear } from "../api/types";
 import { ErrorState } from "../components/ErrorState";
 import { ExplanationPanel } from "../components/ExplanationPanel";
+import { explanationSections } from "../components/explanationSections";
 import { Figure } from "../components/Figure";
+import { GlossaryTerm } from "../components/GlossaryTerm";
 import { ScopeDisclaimer } from "../components/ScopeDisclaimer";
 import { ShareActions } from "../components/ShareActions";
 import { FACT_SHEET, HISTORY, SEARCH, SHARE } from "../content/copy";
@@ -119,10 +121,20 @@ export function FactSheetPage() {
           {[sheet.identite.type, sheet.identite.statut_public_prive]
             .filter(Boolean)
             .join(" · ")}
-          {sheet.identite.filieres.length > 0 &&
-            ` · ${sheet.identite.filieres.join(", ")}`}
-          {sheet.identite.sections.length > 0 &&
-            ` · ${sheet.identite.sections.join(", ")}`}
+          {sheet.identite.filieres.length > 0 && (
+            <>
+              {" · "}
+              <GlossaryTerm termId="filiere">
+                {sheet.identite.filieres.join(", ")}
+              </GlossaryTerm>
+            </>
+          )}
+          {sheet.identite.sections.map((section) => (
+            <span key={section}>
+              {" · "}
+              <GlossaryTerm termId={section}>{section}</GlossaryTerm>
+            </span>
+          ))}
         </p>
       </header>
 
@@ -170,7 +182,9 @@ export function FactSheetPage() {
               <h3 className={styles.yearTitle}>
                 {FACT_SHEET.yearLabel(year.annee)}
                 <span className={styles.yearMeta}>
-                  {year.type_indicateur}
+                  <GlossaryTerm termId={year.type_indicateur.startsWith("IVAL") ? "ival" : "ivac"}>
+                    {year.type_indicateur}
+                  </GlossaryTerm>
                   {year.candidats_presents !== null &&
                     ` · ${FACT_SHEET.candidates(year.candidats_presents)}`}
                 </span>
@@ -184,6 +198,7 @@ export function FactSheetPage() {
                     unit={indicator.unit}
                     year={year.annee}
                     explanation={sheet.explications[indicator.explanationId]}
+                    glossaryTermId={indicator.explanationId}
                     absenceExplanation={absence}
                     source={year.source}
                     onExplain={setOpenExplanation}
@@ -226,7 +241,8 @@ export function FactSheetPage() {
 
       {openExplanation && (
         <ExplanationPanel
-          explanation={openExplanation}
+          title={openExplanation.titre}
+          sections={explanationSections(openExplanation)}
           onClose={() => setOpenExplanation(null)}
         />
       )}

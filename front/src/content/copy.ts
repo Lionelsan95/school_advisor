@@ -228,6 +228,8 @@ export const GLOSSARY = {
   filterLabel: "Filtrer les termes",
   noMatch: "Aucun terme ne correspond à cette recherche.",
   related: "Voir aussi :",
+  exampleHeading: "À noter",
+  defineTerm: (term: string) => `Définition : ${term}`,
 };
 
 /**
