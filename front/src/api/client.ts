@@ -7,7 +7,31 @@
  * already enforces for settings.
  */
 
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+/**
+ * Where the API lives, from the environment.
+ *
+ * The localhost fallback applies **in development only**. It used to be
+ * unconditional, which meant a production build made without
+ * `VITE_API_BASE_URL` would ship pointing at the visitor's own machine: every
+ * request fails, and it looks like the visitor's problem rather than a
+ * misbuilt image. That is precisely the failure mode the backend avoids by
+ * giving `DATABASE_URL` no default — a missing setting should fail loudly at
+ * the boundary, not quietly produce a broken product.
+ *
+ * `import.meta.env.DEV` is replaced at build time, so the throw below is the
+ * only branch left in a production bundle.
+ */
+function resolveBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_BASE_URL;
+  if (configured) return configured;
+  if (import.meta.env.DEV) return "http://localhost:8000";
+  throw new Error(
+    "VITE_API_BASE_URL must be set at build time. Vite inlines it into the " +
+      "bundle, so it cannot be supplied at runtime.",
+  );
+}
+
+const BASE_URL: string = resolveBaseUrl();
 
 /**
  * A failed request, carrying the distinction the API contract makes.
